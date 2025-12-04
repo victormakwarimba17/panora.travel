@@ -1,596 +1,1903 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PANORA — single-file</title>
-
-  <!-- Tailwind via CDN (keeps original classes) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- React + ReactDOM UMD -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-
-  <!-- Babel for in-browser JSX transpile (development only; remove for production and build instead) -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <style>
-    /* small custom scrollbar + minor visuals */
-    .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 999px; }
-    .fade-in { animation: fadein .18s ease-in-out; }
-    @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
-
-    /* small utility to mimic framer-motion subtle pop */
-    .pop-enter { transform: translateY(12px); opacity: 0; transition: all 220ms ease; }
-    .pop-enter.pop-enter-active { transform: translateY(0); opacity: 1; }
-
-    /* truncated line clamp fallback for non-tailwind-pro */
-    .line-clamp-1 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panora Travels | Explore Zimbabwe</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏔️</text></svg>">
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'in': 'fadeIn 0.3s ease-in-out',
+                        'out': 'fadeOut 0.3s ease-in-out',
+                        'pulse-slow': 'pulse 3s infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Framer Motion is not available in vanilla JS, we'll use CSS animations instead -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+        
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #475569;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .line-clamp-1 {
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 1;
+        }
+        
+        .line-clamp-2 {
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        @keyframes zoomIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes slideInDown {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .animate-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .zoom-in-95 {
+            animation: zoomIn 0.2s ease-out;
+        }
+        
+        .slide-in-down {
+            animation: slideInDown 0.3s ease-out;
+        }
+        
+        .prose {
+            color: #374151;
+            max-width: 65ch;
+        }
+        
+        .dark .prose {
+            color: #d1d5db;
+        }
+        
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+        
+        .prose strong {
+            font-weight: 600;
+            color: #111827;
+        }
+        
+        .dark .prose strong {
+            color: #f3f4f6;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: #e2e8f0;
+            outline: none;
+        }
+        
+        .dark input[type="range"] {
+            background: #475569;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #f59e0b;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #f59e0b;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        input[type="radio"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        input[type="radio"]:checked {
+            border-color: #f59e0b;
+        }
+        
+        input[type="radio"]:checked::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f59e0b;
+        }
+        
+        .dark input[type="radio"] {
+            border-color: #64748b;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5);
+            cursor: pointer;
+        }
+        
+        .dark input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+        
+        /* Loading animation */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Icon styles */
+        .icon {
+            width: 1em;
+            height: 1em;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+    </style>
 </head>
-<body class="antialiased bg-[#FAFAF9] dark:bg-slate-950 transition-colors">
+<body class="min-h-screen font-sans transition-colors duration-300 bg-[#FAFAF9] text-slate-900 dark:bg-slate-950 dark:text-white">
+    <div id="app"></div>
+    
+    <!-- SVG Icons (Lucide React icons converted to SVG) -->
+    <svg xmlns="http://www.w3.org/2000/svg" class="hidden">
+        <!-- Search Icon -->
+        <symbol id="icon-search" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </symbol>
+        
+        <!-- MapPin Icon -->
+        <symbol id="icon-map-pin" viewBox="0 0 24 24">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+        </symbol>
+        
+        <!-- Calendar Icon -->
+        <symbol id="icon-calendar" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </symbol>
+        
+        <!-- Users Icon -->
+        <symbol id="icon-users" viewBox="0 0 24 24">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </symbol>
+        
+        <!-- Menu Icon -->
+        <symbol id="icon-menu" viewBox="0 0 24 24">
+            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </symbol>
+        
+        <!-- X Icon -->
+        <symbol id="icon-x" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </symbol>
+        
+        <!-- Star Icon -->
+        <symbol id="icon-star" viewBox="0 0 24 24">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </symbol>
+        
+        <!-- Heart Icon -->
+        <symbol id="icon-heart" viewBox="0 0 24 24">
+            <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"/>
+        </symbol>
+        
+        <!-- Play Icon -->
+        <symbol id="icon-play" viewBox="0 0 24 24">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+        </symbol>
+        
+        <!-- ChevronRight Icon -->
+        <symbol id="icon-chevron-right" viewBox="0 0 24 24">
+            <polyline points="9 18 15 12 9 6"/>
+        </symbol>
+        
+        <!-- ShieldCheck Icon -->
+        <symbol id="icon-shield-check" viewBox="0 0 24 24">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>
+        </symbol>
+        
+        <!-- Zap Icon -->
+        <symbol id="icon-zap" viewBox="0 0 24 24">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </symbol>
+        
+        <!-- Globe Icon -->
+        <symbol id="icon-globe" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </symbol>
+        
+        <!-- ChevronDown Icon -->
+        <symbol id="icon-chevron-down" viewBox="0 0 24 24">
+            <polyline points="6 9 12 15 18 9"/>
+        </symbol>
+        
+        <!-- Mail Icon -->
+        <symbol id="icon-mail" viewBox="0 0 24 24">
+            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+        </symbol>
+        
+        <!-- Tent Icon -->
+        <symbol id="icon-tent" viewBox="0 0 24 24">
+            <path d="M4 10v10"/><path d="M20 10v10"/><path d="M4 10h16"/><path d="M12 4l8 6H4l8-6z"/>
+        </symbol>
+        
+        <!-- Utensils Icon -->
+        <symbol id="icon-utensils" viewBox="0 0 24 24">
+            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"/>
+        </symbol>
+        
+        <!-- Waves Icon -->
+        <symbol id="icon-waves" viewBox="0 0 24 24">
+            <path d="M2 6c.6.5 1.2 1 2.5 1C7 7 7 5 9.5 5c2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 12c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M2 18c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/>
+        </symbol>
+        
+        <!-- Mountain Icon -->
+        <symbol id="icon-mountain" viewBox="0 0 24 24">
+            <path d="m8 3 4 8 5-5 5 15H2L8 3z"/>
+        </symbol>
+        
+        <!-- Music Icon -->
+        <symbol id="icon-music" viewBox="0 0 24 24">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+        </symbol>
+        
+        <!-- Camera Icon -->
+        <symbol id="icon-camera" viewBox="0 0 24 24">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+        </symbol>
+        
+        <!-- Briefcase Icon -->
+        <symbol id="icon-briefcase" viewBox="0 0 24 24">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+        </symbol>
+        
+        <!-- User Icon -->
+        <symbol id="icon-user" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </symbol>
+        
+        <!-- Minus Icon -->
+        <symbol id="icon-minus" viewBox="0 0 24 24">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+        </symbol>
+        
+        <!-- Plus Icon -->
+        <symbol id="icon-plus" viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </symbol>
+        
+        <!-- Loader2 Icon (spinner) -->
+        <symbol id="icon-loader-2" viewBox="0 0 24 24">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </symbol>
+        
+        <!-- Lightbulb Icon -->
+        <symbol id="icon-lightbulb" viewBox="0 0 24 24">
+            <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>
+        </symbol>
+        
+        <!-- Send Icon -->
+        <symbol id="icon-send" viewBox="0 0 24 24">
+            <path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/>
+        </symbol>
+        
+        <!-- Check Icon -->
+        <symbol id="icon-check" viewBox="0 0 24 24">
+            <polyline points="20 6 9 17 4 12"/>
+        </symbol>
+        
+        <!-- MessageSquare Icon -->
+        <symbol id="icon-message-square" viewBox="0 0 24 24">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </symbol>
+        
+        <!-- Moon Icon -->
+        <symbol id="icon-moon" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </symbol>
+        
+        <!-- Sun Icon -->
+        <symbol id="icon-sun" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </symbol>
+        
+        <!-- Languages Icon -->
+        <symbol id="icon-languages" viewBox="0 0 24 24">
+            <path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 12-4 6h-6l4-6"/><path d="M14 18h-4"/><path d="M12 6V2"/>
+        </symbol>
+        
+        <!-- Filter Icon -->
+        <symbol id="icon-filter" viewBox="0 0 24 24">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+        </symbol>
+        
+        <!-- ArrowUpDown Icon -->
+        <symbol id="icon-arrow-up-down" viewBox="0 0 24 24">
+            <path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>
+        </symbol>
+        
+        <!-- Smartphone Icon -->
+        <symbol id="icon-smartphone" viewBox="0 0 24 24">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><path d="M12 18h.01"/>
+        </symbol>
+        
+        <!-- Lock Icon -->
+        <symbol id="icon-lock" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </symbol>
+        
+        <!-- LayoutDashboard Icon -->
+        <symbol id="icon-layout-dashboard" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/>
+        </symbol>
+        
+        <!-- PlusCircle Icon -->
+        <symbol id="icon-plus-circle" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </symbol>
+        
+        <!-- CalendarDays Icon -->
+        <symbol id="icon-calendar-days" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>
+        </symbol>
+        
+        <!-- Inbox Icon -->
+        <symbol id="icon-inbox" viewBox="0 0 24 24">
+            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+        </symbol>
+        
+        <!-- DollarSign Icon -->
+        <symbol id="icon-dollar-sign" viewBox="0 0 24 24">
+            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </symbol>
+        
+        <!-- ImageIcon Icon -->
+        <symbol id="icon-image" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+        </symbol>
+        
+        <!-- Settings Icon -->
+        <symbol id="icon-settings" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </symbol>
+        
+        <!-- LogOut Icon -->
+        <symbol id="icon-log-out" viewBox="0 0 24 24">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </symbol>
+        
+        <!-- BedDouble Icon -->
+        <symbol id="icon-bed-double" viewBox="0 0 24 24">
+            <path d="M2 20v-8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v8"/><path d="M4 10V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4"/><path d="M12 4v6"/><path d="M2 18h20"/>
+        </symbol>
+        
+        <!-- Facebook Icon -->
+        <symbol id="icon-facebook" viewBox="0 0 24 24">
+            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+        </symbol>
+        
+        <!-- Instagram Icon -->
+        <symbol id="icon-instagram" viewBox="0 0 24 24">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+        </symbol>
+        
+        <!-- Twitter Icon -->
+        <symbol id="icon-twitter" viewBox="0 0 24 24">
+            <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/>
+        </symbol>
+        
+        <!-- Video Icon -->
+        <symbol id="icon-video" viewBox="0 0 24 24">
+            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+        </symbol>
+        
+        <!-- Award Icon -->
+        <symbol id="icon-award" viewBox="0 0 24 24">
+            <circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+        </symbol>
+        
+        <!-- Clock Icon -->
+        <symbol id="icon-clock" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </symbol>
+        
+        <!-- Map Icon -->
+        <symbol id="icon-map" viewBox="0 0 24 24">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>
+        </symbol>
+        
+        <!-- Trash2 Icon -->
+        <symbol id="icon-trash-2" viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+        </symbol>
+        
+        <!-- Edit Icon -->
+        <symbol id="icon-edit" viewBox="0 0 24 24">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </symbol>
+        
+        <!-- Save Icon -->
+        <symbol id="icon-save" viewBox="0 0 24 24">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+        </symbol>
+        
+        <!-- Bell Icon -->
+        <symbol id="icon-bell" viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </symbol>
+        
+        <!-- CreditCard Icon -->
+        <symbol id="icon-credit-card" viewBox="0 0 24 24">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+        </symbol>
+        
+        <!-- Shield Icon -->
+        <symbol id="icon-shield" viewBox="0 0 24 24">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </symbol>
+        
+        <!-- HomeIcon Icon -->
+        <symbol id="icon-home" viewBox="0 0 24 24">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </symbol>
+        
+        <!-- Sparkles Icon -->
+        <symbol id="icon-sparkles" viewBox="0 0 24 24">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+        </symbol>
+    </svg>
 
-<div id="root"></div>
-
-<!-- App code (JSX) -->
-<script type="text/babel">
-
-// -------------------------------
-// CONFIG & DATA (from your file)
-// -------------------------------
-const API_KEY = ""; // put real Gemini key here if you want Gemini integration
-const ADMIN_EMAIL = "victormakwarimba.t@gmail.com";
-
-// initial listings copied from your upload (trimmed to keep file size reasonable)
-// Full dataset preserved where possible — you can expand this.
-const INITIAL_LISTINGS = [
-  { id:1, title:"The Residency at Leopard Rock", province:"Manicaland", town:"Vumba", location:"Vumba Mountains", price:180, rating:4.92, reviews:128, image:"https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=1000", category:"Resorts", type:"stay", collectionType:"luxury", amenities:["Wifi","Pool","Spa","Golf Course"], isOpen:true, tags:["Luxury","Mountain View","Golf"], ageRequirement:0, description:"Experience world-class luxury in the mist of the Vumba Mountains." },
-  { id:2, title:"Zambezi River Eco-Lodge", province:"Matabeleland North", town:"Victoria Falls", location:"Victoria Falls", price:320, rating:4.98, reviews:84, image:"https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&q=80&w=1000", category:"Camps", type:"stay", collectionType:"safari", amenities:["Wifi","Safari","River View"], isOpen:true, tags:["Eco-Friendly","Wildlife","Big 5"], ageRequirement:12, description:"An eco-conscious lodge on the banks of the mighty Zambezi." },
-  { id:3, title:"Amanzi Restaurant Deck", province:"Harare", town:"Highlands", location:"Harare", price:45, rating:4.85, reviews:340, image:"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000", category:"Restaurants", type:"culinary", collectionType:"none", amenities:["Bar","Live Music","Garden"], isOpen:true, tags:["Fine Dining","Nightlife"], ageRequirement:18, description:"Award-winning dining experience in Harare." },
-  { id:4, title:"Granite Stone Camp", province:"Matabeleland South", town:"Matopos", location:"Matobo Hills", price:150, rating:4.95, reviews:42, image:"https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=1000", category:"Camps", type:"camping", collectionType:"adventure", amenities:["Hiking","Fireplace","Guided Walks"], isOpen:false, tags:["Adventure","History"], ageRequirement:0, description:"Nestled among the balancing rocks of Matopos." },
-  { id:5, title:"Kariba Houseboat Luxury", province:"Mashonaland West", town:"Kariba", location:"Lake Kariba", price:400, rating:4.90, reviews:56, image:"https://images.unsplash.com/photo-1544551763-46a8e3d69958?auto=format&fit=crop&q=80&w=1000", category:"Houseboats", type:"cruise", collectionType:"family", amenities:["Chef","Fishing","Jacuzzi"], isOpen:true, tags:["Water","Safari","Fishing"], ageRequirement:0, description:"Cruise Lake Kariba in style." },
-  { id:6, title:"Nyanga Pine Cabin", province:"Manicaland", town:"Nyanga", location:"Nyanga", price:95, rating:4.75, reviews:210, image:"https://images.unsplash.com/photo-1449156493391-d2cfa28e468b?auto=format&fit=crop&q=80&w=1000", category:"Cabins", type:"stay", collectionType:"romantic", amenities:["Fireplace","Self-Catering"], isOpen:true, tags:["Cozy","Forest"], ageRequirement:0, description:"A cozy pine cabin in the Eastern Highlands." }
-];
-
-const PROVINCES = ["Harare","Bulawayo","Manicaland","Mashonaland Central","Mashonaland East","Mashonaland West","Masvingo","Matabeleland North","Matabeleland South","Midlands"];
-
-// -------------------------------
-// Tiny Icon components (inline SVG to replace lucide-react imports)
-// -------------------------------
-const Icon = ({ children, className='' }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">{children}</svg>;
-const SearchIcon = (props) => <Icon {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" /></Icon>;
-const MapPinIcon = (props) => <Icon {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11a3 3 0 100-6 3 3 0 000 6zM12 21s8-5.5 8-11a8 8 0 10-16 0c0 5.5 8 11 8 11z" /></Icon>;
-const SparklesIcon = (props) => <Icon {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3l1.5 3L10 7 7 9 5 12 3 9 0 7 3.5 6 5 3zm14 4l.75 1.5L21 11l-1.25-2L17 8l2-1zM14 17l.5 1L16 20l-2-1-1.5 1-1-2 1-1.5L14 17z" /></Icon>;
-const StarIcon = (props) => <Icon {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.96a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.38 2.46a1 1 0 00-.364 1.118l1.287 3.96c.3.921-.755 1.688-1.54 1.118l-3.38-2.46a1 1 0 00-1.175 0l-3.38 2.46c-.784.57-1.84-.197-1.54-1.118l1.287-3.96a1 1 0 00-.364-1.118L2.05 9.387c-.783-.57-.381-1.81.588-1.81h4.175a1 1 0 00.95-.69l1.286-3.96z" /></Icon>;
-const ChevronRightIcon = (props) => <Icon {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></Icon>;
-
-// -------------------------------
-// Simple Gemini stub (uses API_KEY if set, otherwise returns fake itinerary)
-// -------------------------------
-async function generateGeminiContent(prompt) {
-  if (!API_KEY) {
-    // simulate output (keeps bold markers `**Day X**` used by original UI)
-    return `**Day 1** — Arrival in ${prompt.includes('Zimbabwe') ? 'Zimbabwe' : 'your destination'}\n- Relax and explore nearby sights.\n\n**Day 2** — Adventure Day\n- Safari or local tour.\n\n**Day 3** — Culture & Food\n- Sample local cuisine and markets.\n\nHave a great trip! ✨`;
-  }
-  // if user populates API_KEY, they can replace this with real fetch to Gemini endpoint
-  try {
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5:generateContent?key=${API_KEY}`, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({contents:[{parts:[{text:prompt}]}]})
-    });
-    const data = await resp.json();
-    return data?.candidates?.[0]?.content?.parts?.[0]?.text || "Couldn't generate at this time.";
-  } catch(e){ console.error(e); return "Error contacting AI service."; }
-}
-
-// -------------------------------
-// Small helper to mirror original translation helper
-// -------------------------------
-const TRANSLATIONS = { en: { about:"About Us", collections:"Collections", explore:"Explore", search:"Search", whereTo:"Where to?", searchDestinations:"Search destinations", checkIn:"Check In", checkOut:"Check Out", guests:"Guests", signIn:"Sign In", aiPlanner:"AI Planner", settings:"Settings", dashboard:"Dashboard", filter:"Filters", clear:"Clear", openNow:"Open Now", priceRange:"Price Range", province:"Province", activityType:"Activity Type", clearFilters:"Clear Filters", viewAll:"View All", unforgettable:"Unforgettable Stays", stayBetter:"Stay Better. Explore Deeper.", experienceZim:"Experience Zimbabwe.", footerDesc:"Connecting travelers with the best Zimbabwean experiences.", company:"Company", support:"Support", newsletter:"Newsletter", subscribe:"Subscribe", aboutText:"Panora was born from a love for the untold stories of Zimbabwe." } };
-function t(key) { return TRANSLATIONS.en[key] || key }
-
-// -------------------------------
-// Local-storage-backed listings service (so dashboard CRUD persists)
-// Replace these with network calls to your API to connect to a real DB.
-// -------------------------------
-function loadListings() {
-  const raw = localStorage.getItem('panora_listings_v1');
-  if (raw) try { return JSON.parse(raw); } catch(e){ localStorage.removeItem('panora_listings_v1'); }
-  localStorage.setItem('panora_listings_v1', JSON.stringify(INITIAL_LISTINGS));
-  return INITIAL_LISTINGS.slice();
-}
-function saveListings(listings) {
-  localStorage.setItem('panora_listings_v1', JSON.stringify(listings));
-}
-
-// -------------------------------
-// Simple UI: Navbar, Home, Explore, Collections, ListingCard, PartnerDashboard, AI Planner modal, Auth modal
-// (This is a compact but functional recreation of your React app.)
-// -------------------------------
-const { useState, useEffect, useRef, useMemo } = React;
-
-function App() {
-  const [view, setView] = useState('home');
-  const [theme, setTheme] = useState('light');
-  const [lang, setLang] = useState('en');
-  const [authOpen, setAuthOpen] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [listings, setListings] = useState(loadListings());
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
-
-  useEffect(() => { saveListings(listings); }, [listings]);
-
-  const navigate = (v, params) => { window.scrollTo({top:0,behavior:'smooth'}); if(v==='dashboard' && (!user || user.type!=='partner')) { alert('Partner login required'); setView('home'); return; } setView(v); };
-
-  // CRUD hooks for dashboard
-  const addListing = (l) => { setListings(prev => [l, ...prev]); };
-  const updateListing = (updated) => { setListings(prev => prev.map(p=>p.id===updated.id?updated:p)); };
-  const deleteListing = (id) => { if(confirm('Delete listing?')) setListings(prev => prev.filter(p=>p.id!==id)); };
-
-  const handleLogin = (type) => {
-    const u = { name: type==='partner' ? "Victor Makwarimba" : "Traveler Guest", email:"victor@example.com", type };
-    setUser(u);
-    setAuthOpen(false);
-    if (type === 'partner') setView('dashboard');
-  };
-  const handleLogout = () => { setUser(null); setView('home'); };
-
-  return (
-    <div className={`min-h-screen font-sans transition-colors duration-300 ${theme==='dark' ? 'bg-slate-950 text-white' : 'bg-[#FAFAF9] text-slate-900'}`}>
-      {view !== 'dashboard' && <Navbar navigate={navigate} theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} user={user} onOpenAuth={()=>setAuthOpen(true)} onOpenAi={()=>setAiOpen(true)} onLogout={handleLogout} />}
-      <main>
-        {view === 'home' && <Home listings={listings} navigate={navigate} onOpenAi={() => setAiOpen(true)} />}
-        {view === 'explore' && <Explore listings={listings} navigate={navigate} />}
-        {view === 'collections' && <Collections navigate={navigate} />}
-        {view === 'dashboard' && <PartnerDashboard listings={listings} addListing={addListing} updateListing={updateListing} deleteListing={deleteListing} user={user} onLogout={handleLogout} />}
-        {view === 'about' && <AboutUs />}
-      </main>
-
-      <Footer navigate={navigate} />
-
-      {authOpen && <AuthModal onClose={()=>setAuthOpen(false)} onLogin={handleLogin} />}
-      {aiOpen && <AIPlannerModal onClose={()=>setAiOpen(false)} />}
-    </div>
-  );
-}
-
-// ---------- Navbar ----------
-function Navbar({ navigate, theme, setTheme, lang, setLang, user, onOpenAuth, onOpenAi, onLogout }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  useEffect(() => {
-    const onScroll = () => {};
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-  return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-lg py-3 text-slate-900 dark:text-white`}>
-      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center relative">
-        <div className="font-bold text-2xl tracking-tighter cursor-pointer" onClick={()=>navigate('home')}>PANORA<span className="text-amber-500">.</span></div>
-
-        <div className="hidden lg:flex space-x-8 items-center">
-          <button onClick={()=>navigate('about')} className="hover:text-amber-500 transition-colors">{t('about')}</button>
-          <button onClick={()=>navigate('collections')} className="hover:text-amber-500 transition-colors">{t('collections')}</button>
-          <button onClick={()=>navigate('explore')} className="hover:text-amber-500 transition-colors">{t('explore')}</button>
-          <button onClick={onOpenAi} className="flex items-center space-x-2 text-amber-500 font-bold animate-pulse">
-            <SparklesIcon className="text-amber-300" /> <span>{t('aiPlanner')}</span>
-          </button>
-        </div>
-
-        <div className="hidden lg:flex items-center space-x-4">
-          <button onClick={()=>setTheme(theme==='light'?'dark':'light')} className="p-2 rounded-full">{theme==='light' ? '🌙' : '☀️'}</button>
-          {user ? (
-            <div className="flex items-center space-x-3 bg-slate-100 dark:bg-slate-800 rounded-full pl-2 pr-4 py-1 cursor-pointer hover:bg-slate-200" onClick={()=>navigate(user.type==='partner'?'dashboard':'settings')}>
-              <img src={user.avatar||'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} alt="avatar" className="w-8 h-8 rounded-full" />
-              <span className="text-xs font-bold max-w-[80px] truncate">{user.name}</span>
-            </div>
-          ) : (
-            <button onClick={onOpenAuth} className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-full font-semibold">Sign In</button>
-          )}
-        </div>
-
-        <div className="lg:hidden flex items-center space-x-4">
-          <button onClick={()=>setTheme(theme==='light'?'dark':'light')} className="p-2 rounded-full">{theme==='light'?'🌙':'☀️'}</button>
-          <button onClick={()=>setMobileOpen(!mobileOpen)} className="p-2">{mobileOpen ? '✖️' : '☰'}</button>
-        </div>
-      </div>
-
-      {mobileOpen && (
-        <div className="lg:hidden bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shadow-2xl p-6">
-          <div className="flex flex-col space-y-4">
-            <button onClick={()=>{navigate('explore'); setMobileOpen(false);}} className="text-left">{t('explore')}</button>
-            <button onClick={()=>{navigate('collections'); setMobileOpen(false);}} className="text-left">{t('collections')}</button>
-            <button onClick={()=>{onOpenAi(); setMobileOpen(false);}} className="text-left text-amber-500 font-bold">{t('aiPlanner')}</button>
-            {user ? <div className="pt-4 flex items-center justify-between"><div className="flex items-center space-x-2"><img src={user.avatar||''} className="w-10 h-10 rounded-full"/><span className="font-bold">{user.name}</span></div><button onClick={onLogout} className="text-red-500">Sign Out</button></div> : (<button onClick={()=>{onOpenAuth(); setMobileOpen(false);}} className="w-full bg-amber-500 text-white py-3 rounded-xl">Sign In</button>)}
-          </div>
-        </div>
-      )}
-    </nav>
-  );
-}
-
-// ---------- Home ----------
-function Home({ listings, navigate, onOpenAi }) {
-  return (
-    <main>
-      <div className="relative h-[80vh] w-full overflow-hidden bg-slate-900">
-        <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-60">
-          <source src="https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-victoria-falls-4266-large.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-slate-950" />
-        <div className="relative z-10 h-full flex flex-col justify-center items-center px-4 text-center pt-20">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-6 max-w-5xl">{t('stayBetter')} <br /><span className="text-amber-400">{t('experienceZim')}</span></h1>
-          <div className="w-full max-w-5xl mb-6"><SearchBar onSearch={(p)=>navigate('explore', p)} listings={listings} /></div>
-
-          <button onClick={onOpenAi} className="flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition-transform">
-            <SparklesIcon className="text-amber-300" /> <span>Plan My Trip with AI</span>
-          </button>
-        </div>
-      </div>
-
-      <section className="max-w-7xl mx-auto px-6 py-12">
-        <div className="flex justify-between items-end mb-8"><div><h2 className="text-3xl font-bold mb-2">{t('unforgettable')}</h2><p className="text-slate-500">From hidden gems to iconic destinations.</p></div><button onClick={()=>navigate('explore')} className="flex items-center space-x-1 font-semibold text-slate-900 hover:text-amber-600"><span>{t('viewAll')}</span><ChevronRightIcon /></button></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {listings.slice(0,6).map(l => <ListingCard key={l.id} data={l} />)}
-        </div>
-      </section>
-    </main>
-  );
-}
-
-// ---------- SearchBar ----------
-function SearchBar({ onSearch, listings }) {
-  const [location, setLocation] = useState('');
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
-  const [guests, setGuests] = useState({adults:1,children:0});
-  const today = new Date().toISOString().split('T')[0];
-
-  const suggestions = useMemo(() => {
-    if (!location) return [];
-    const all = new Set([...PROVINCES, ...listings.map(l=>l.location), ...listings.map(l=>l.town)]);
-    return Array.from(all).filter(x => x.toLowerCase().includes(location.toLowerCase())).slice(0,5);
-  }, [location, listings]);
-
-  return (
-    <div className="relative w-full">
-      <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-2 shadow-xl flex flex-col md:flex-row items-center border border-slate-100 dark:border-slate-700">
-        <div className="flex-1 px-6 py-3 w-full relative">
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">Where to?</label>
-          <div className="flex items-center"><MapPinIcon className="text-slate-400 mr-2" /><input value={location} onChange={e=>setLocation(e.target.value)} className="w-full bg-transparent outline-none font-bold text-slate-800 dark:text-white placeholder-slate-300" placeholder="Search destinations" /></div>
-          {suggestions.length>0 && (<div className="absolute top-full left-0 w-full mt-4 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border overflow-hidden z-50">{suggestions.map(s=> <button key={s} onClick={()=>{setLocation(s)}} className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-2"><MapPinIcon className="text-amber-500" />{s}</button>)}</div>)}
-        </div>
-
-        <div className="w-full md:w-auto px-6 py-3 border-l border-slate-100 dark:border-slate-700">
-          <label className="block text-xs font-bold text-slate-500 uppercase">Check In</label>
-          <input type="date" min={today} value={checkIn} onChange={e=>setCheckIn(e.target.value)} className="bg-transparent font-bold text-sm outline-none w-full" />
-        </div>
-
-        <div className="w-full md:w-auto px-6 py-3 border-l border-slate-100 dark:border-slate-700">
-          <label className="block text-xs font-bold text-slate-500 uppercase">Check Out</label>
-          <input type="date" min={checkIn||today} value={checkOut} onChange={e=>setCheckOut(e.target.value)} className="bg-transparent font-bold text-sm outline-none w-full" />
-        </div>
-
-        <div className="w-full md:w-auto px-6 py-3 border-l border-slate-100 dark:border-slate-700">
-          <label className="block text-xs font-bold text-slate-500 uppercase">Guests</label>
-          <div className="flex items-center justify-between">
-            <div className="font-bold">{guests.adults + guests.children} Guest{guests.adults+guests.children!==1?'s':''}</div>
-            <div className="flex items-center space-x-2">
-              <button className="p-1 rounded-full border" onClick={()=>setGuests(p=>({...p,adults:Math.max(1,p.adults-1)}))}>-</button>
-              <div className="w-6 text-center">{guests.adults}</div>
-              <button className="p-1 rounded-full border" onClick={()=>setGuests(p=>({...p,adults:Math.min(10,p.adults+1)}))}>+</button>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-2 w-full md:w-auto"><button onClick={()=>onSearch({location,checkIn,checkOut,guests})} className="w-full md:w-auto bg-amber-500 hover:bg-amber-600 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-105 flex justify-center items-center"><SearchIcon /></button></div>
-      </div>
-    </div>
-  );
-}
-
-// ---------- ListingCard ----------
-function ListingCard({ data }) {
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-800 group cursor-pointer">
-      <div className="relative h-56 overflow-hidden">
-        <img src={data.image} alt={data.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-        <div className="absolute top-3 right-3 bg-white/95 dark:bg-slate-900/95 px-2 py-1 rounded-lg text-xs font-bold flex items-center shadow-sm"><StarIcon className="text-amber-500 mr-1"/> <span className="dark:text-white">{data.rating}</span></div>
-        <div className="absolute bottom-3 left-3 flex gap-1">{data.tags.slice(0,3).map((tag,i)=><span key={i} className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full">{tag}</span>)}</div>
-        {!data.isOpen && (<div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Closed</span></div>)}
-      </div>
-      <div className="p-5 flex flex-col">
-        <div className="flex items-start justify-between mb-2"><div><span className="text-amber-600 text-xs font-bold uppercase tracking-wider mb-1 block">{data.category}</span><h3 className="font-bold text-lg dark:text-white leading-tight line-clamp-1">{data.title}</h3></div></div>
-        <div className="flex items-center text-slate-500 dark:text-slate-400 text-sm mb-4"><MapPinIcon className="mr-1" />{data.location}, {data.province}</div>
-        <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center"><div><span className="text-lg font-bold dark:text-white">${data.price}</span><span className="text-slate-400 text-xs ml-1">/ night</span></div><button className="bg-slate-50 dark:bg-slate-800 hover:bg-amber-500 hover:text-white text-slate-900 dark:text-white rounded-full p-2 transition-colors"><ChevronRightIcon /></button></div>
-      </div>
-    </div>
-  );
-}
-
-// ---------- Explore ----------
-function Explore({ listings }) {
-  const [filters, setFilters] = useState({ priceMax:1000, isOpen:false, province:'All', type:'All', searchQuery:'' });
-
-  const filtered = listings.filter(l => {
-    const q = filters.searchQuery.toLowerCase();
-    if (q && !l.location.toLowerCase().includes(q) && !l.province.toLowerCase().includes(q) && !l.town.toLowerCase().includes(q)) return false;
-    if (filters.province !== 'All' && l.province !== filters.province) return false;
-    if (filters.type !== 'All' && l.type !== filters.type) return false;
-    if (filters.isOpen && !l.isOpen) return false;
-    if (l.price > filters.priceMax) return false;
-    return true;
-  });
-
-  return (
-    <div className="pt-24 pb-20 max-w-7xl mx-auto px-6 min-h-screen flex flex-col gap-8">
-      <div className="w-full max-w-4xl mx-auto mb-8"><SearchBar onSearch={(p)=>setFilters(prev=>({...prev,searchQuery:p.location}))} listings={listings} /></div>
-
-      <div className="flex flex-col md:flex-row gap-8">
-        <aside className="w-full md:w-64 bg-white dark:bg-slate-900 p-6 rounded-xl border shadow-sm">
-          <div className="flex justify-between items-center mb-6"><h3 className="font-bold text-lg">{t('filter')}</h3><button onClick={()=>setFilters({priceMax:1000,isOpen:false,province:'All',type:'All',searchQuery:''})} className="text-xs text-amber-500 font-bold">{t('clear')}</button></div>
-
-          <div className="mb-6"><label className="flex items-center justify-between cursor-pointer"><span>Open Now</span><input type="checkbox" checked={filters.isOpen} onChange={()=>setFilters(f=>({...f,isOpen:!f.isOpen}))} /></label></div>
-
-          <div className="mb-6">
-            <label className="block text-sm mb-2">Price (Max: ${filters.priceMax})</label>
-            <input type="range" min="0" max="1000" value={filters.priceMax} onChange={(e)=>setFilters(f=>({...f,priceMax:parseInt(e.target.value)}))} className="w-full" />
-            <div className="flex justify-between text-xs text-slate-500 mt-1"><span>$0</span><span>$1000+</span></div>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm mb-2">Province</label>
-            <select value={filters.province} onChange={(e)=>setFilters(f=>({...f,province:e.target.value}))} className="w-full p-2 rounded-lg border">
-              <option value="All">All Provinces</option>
-              {PROVINCES.map(p=> <option key={p} value={p}>{p}</option>)}
-            </select>
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm mb-2">Type</label>
-            <select value={filters.type} onChange={(e)=>setFilters(f=>({...f,type:e.target.value}))} className="w-full p-2 rounded-lg border">
-              <option>All</option><option>stay</option><option>activity</option><option>culinary</option><option>camping</option><option>cruise</option>
-            </select>
-          </div>
-        </aside>
-
-        <div className="flex-1">
-          <div className="flex justify-between items-end mb-6">
-            <div>
-              <h1 className="text-3xl font-bold">Explore Zimbabwe</h1>
-              <p className="text-slate-500 text-sm mt-1">{filtered.length} results found</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.length>0 ? filtered.map(l => <ListingCard key={l.id} data={l} />) : (<div className="col-span-full py-20 text-center"><div className="bg-slate-100 w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center"><SearchIcon /></div><h3 className="text-xl font-bold">No listings found</h3></div>)}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------- Collections ----------
-function Collections({ navigate }) {
-  const collections = [
-     { id:'luxury', title:"Luxury Escapes", desc:"Indulge in the finest accommodations.", img:"https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1000" },
-     { id:'safari', title:"Wild Safari", desc:"Get close to nature's giants.", img:"https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&q=80&w=1000" },
-     { id:'family', title:"Family Fun", desc:"Adventures for all ages.", img:"https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=1000" }
-  ];
-  return (
-    <div className="pt-24 px-6 min-h-screen max-w-7xl mx-auto pb-20">
-       <h1 className="text-5xl font-bold mb-4">Collections</h1>
-       <p className="text-xl text-slate-500 mb-12 max-w-2xl">Curated experiences to help you find the perfect trip.</p>
-       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
-         {collections.map(c => (<div key={c.id} onClick={()=>navigate('explore',{category:c.id})} className="relative h-96 rounded-3xl overflow-hidden cursor-pointer group shadow-xl"><img src={c.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/><div className="absolute inset-0 bg-gradient-to-t from-black/80 p-8 flex items-end"><div><h3 className="text-3xl font-bold text-white mb-2">{c.title}</h3><p className="text-slate-300">{c.desc}</p></div></div></div>))}
-       </div>
-    </div>
-  );
-}
-
-// ---------- Partner Dashboard (CRUD using localStorage) ----------
-function PartnerDashboard({ listings, addListing, updateListing, deleteListing, user, onLogout }) {
-  const [activeTab, setActiveTab] = useState('listings');
-  const [editing, setEditing] = useState(null);
-  const initialForm = { title:'', price:'', province:'Harare', town:'', category:'Resorts', description:'', tags:'', mapLink:'', image:'', collectionType:'none', ageRequirement:0, amenities:'' };
-  const [form, setForm] = useState(initialForm);
-
-  useEffect(()=>{ if (editing) { const l = listings.find(x=>x.id===editing); if(l) setForm({ ...l, price: String(l.price), tags: (l.tags||[]).join(', '), amenities:(l.amenities||[]).join(', ') }); } },[editing]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newListing = { id: editing || Date.now(), title: form.title, province: form.province, town: form.town, location: form.town||form.province, price: Number(form.price), rating:5, image: form.image||'https://images.unsplash.com/photo-1566073771259-6a8506099945', gallery:[], category: form.category, type:'stay', amenities: form.amenities.split(',').map(s=>s.trim()).filter(Boolean), isOpen:true, description: form.description, reviews:0, tags: form.tags.split(',').map(s=>s.trim()).filter(Boolean), mapLink: form.mapLink, ageRequirement: Number(form.ageRequirement), collectionType: form.collectionType };
-    if (editing) { updateListing(newListing); alert('Listing Updated!'); } else { addListing(newListing); alert('New Property Published!'); }
-    setEditing(null); setForm(initialForm); setActiveTab('listings');
-  };
-
-  const handleGenerateDescription = async () => {
-    if (!form.title || !form.town) { alert('Enter Title and Town first.'); return; }
-    const prompt = `Write a short, catchy description for ${form.title} in ${form.town}. Amenities: ${form.amenities}.`;
-    const desc = await generateGeminiContent(prompt);
-    setForm(f=>({...f, description: desc}));
-  };
-
-  return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
-      <aside className="w-64 bg-slate-950 text-white fixed h-full hidden lg:flex flex-col p-6">
-        <div className="font-bold text-2xl mb-6">PANORA.<span className="text-amber-500"> </span><div className="text-xs text-slate-400 mt-1">Partner Hub</div></div>
-        <nav className="flex-1 space-y-2">
-          <button className={`w-full px-4 py-3 rounded-xl ${activeTab==='listings'?'bg-amber-600':''}`} onClick={()=>{setActiveTab('listings'); setEditing(null);}}>My Listings</button>
-          <button className={`w-full px-4 py-3 rounded-xl ${activeTab==='add'?'bg-amber-600':''}`} onClick={()=>{setActiveTab('add'); setEditing(null); setForm(initialForm);}}>Add Property</button>
-        </nav>
-        <div className="pt-4 border-t border-slate-800">
-          <button onClick={()=>{onLogout();}} className="w-full text-red-400">Sign Out</button>
-        </div>
-      </aside>
-
-      <main className="lg:ml-64 flex-1 p-8">
-        {activeTab === 'listings' ? (
-          <div>
-            <h1 className="text-3xl font-bold mb-8">Manage Listings</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {listings.map(l => (
-                <div key={l.id} className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border">
-                  <div className="flex gap-4"><img src={l.image} className="w-24 h-24 rounded-lg object-cover"/><div><h3 className="font-bold">{l.title}</h3><p className="text-sm text-slate-500">{l.town}, {l.province}</p><div className="text-amber-500 font-bold mt-2">${l.price}</div></div></div>
-                  <div className="mt-4 pt-4 border-t flex justify-end gap-2"><button onClick={()=>{ setEditing(l.id); setActiveTab('add'); }} className="p-2 bg-blue-50 text-blue-600 rounded-lg">Edit</button><button onClick={()=>deleteListing(l.id)} className="p-2 bg-red-50 text-red-600 rounded-lg">Delete</button></div>
+    <script>
+        // --- CONFIGURATION ---
+        const API_KEY = ""; // Add your Gemini API key here
+        const ADMIN_EMAIL = "victormakwarimba.t@gmail.com";
+        
+        // --- GLOBAL TYPES ---
+        const ViewState = {
+            HOME: 'home',
+            EXPLORE: 'explore',
+            COLLECTIONS: 'collections',
+            HOSTING: 'hosting',
+            BLOG: 'blog',
+            REVIEWS: 'reviews',
+            DASHBOARD: 'dashboard',
+            PRIVACY: 'privacy',
+            TERMS: 'terms',
+            SITEMAP: 'sitemap',
+            ABOUT: 'about',
+            CAREERS: 'careers',
+            HELP: 'help',
+            SAFETY: 'safety',
+            CANCELLATION: 'cancellation',
+            SETTINGS: 'settings'
+        };
+        
+        const Language = {
+            EN: 'en',
+            SN: 'sn',
+            NR: 'nr',
+            FR: 'fr',
+            ES: 'es',
+            DE: 'de',
+            PT: 'pt',
+            SW: 'sw',
+            ZU: 'zu',
+            ZH: 'zh'
+        };
+        
+        const Theme = {
+            LIGHT: 'light',
+            DARK: 'dark'
+        };
+        
+        const UserType = {
+            GUEST: 'guest',
+            TRAVELER: 'traveler',
+            PARTNER: 'partner'
+        };
+        
+        // --- TRANSLATIONS ---
+        const TRANSLATIONS = {
+            en: { 
+                home: "Home", explore: "Explore", about: "About Us", search: "Search", checkIn: "Check In", checkOut: "Check Out", guests: "Guests", adults: "Adults", children: "Children", whereTo: "Where to?", searchDestinations: "Search destinations", addDates: "Add dates", addGuests: "Add guests", destinations: "Destinations", adventures: "Adventures", reviews: "Reviews", blog: "Blog", signIn: "Sign In", stayBetter: "Stay Better. Explore Deeper.", experienceZim: "Experience Zimbabwe.", unforgettable: "Unforgettable Stays", viewAll: "View All", filter: "Filters", priceRange: "Price Range", status: "Status", openNow: "Open Now", province: "Province", category: "Category", applyFilters: "Apply Filters", clearFilters: "Clear", footerDesc: "Connecting travelers with the best Zimbabwean experiences.", support: "Support", company: "Company", newsletter: "Newsletter", subscribe: "Subscribe", privacy: "Privacy", terms: "Terms", sitemap: "Sitemap", contact: "Contact", settings: "Settings", dashboard: "Dashboard", collections: "Collections", activityType: "Activity Type", clear: "Clear", aiPlanner: "AI Planner"
+            },
+            sn: { 
+                home: "Kumba", explore: "Wongorora", about: "Nezvedu", search: "Tsvaga", checkIn: "Kupinda", checkOut: "Kubuda", guests: "Vaenzi", adults: "Vakuru", children: "Vana", whereTo: "Kurikuenda?", searchDestinations: "Tsvaga nzvimbo", addDates: "Isa mazuva", addGuests: "Isa vaenzi", destinations: "Nzvimbo", adventures: "Mafaro", reviews: "Ongororo", blog: "Nhau", signIn: "Pinda", stayBetter: "Gara Zvakanaka. Famba Zvakadzama.", experienceZim: "Inzwa Zimbabwe.", unforgettable: "Nzvimbo Dzakanaka", viewAll: "Ona Zvese", filter: "Sefa", priceRange: "Mutengo", status: "Mamiriro", openNow: "Zvakavhurwa", province: "Dunhu", category: "Mhando", applyFilters: "Shandisa", clearFilters: "Bvisa", footerDesc: "Kubatanidza vashanyi nenzvimbo dzakanakisa muZimbabwe.", support: "Rubatsiro", company: "Kambani", newsletter: "Mashoko", subscribe: "Nyorera", privacy: "Chakavanzika", terms: "Mitemo", sitemap: "Mepu", contact: "Bata Isu", settings: "Zvirongwa", dashboard: "Dashboard", collections: "Unganidzo", activityType: "Mhando yeBasa", clear: "Bvisa", aiPlanner: "AI Planner"
+            },
+            nr: { 
+                home: "Ekhaya", explore: "Hlola", about: "Ngathi", search: "Cinga", checkIn: "Ngena", checkOut: "Phuma", guests: "Izivakashi", adults: "Abadala", children: "Abantwana", whereTo: "Uyaphi?", searchDestinations: "Cinga izindawo", addDates: "Faka izinsuku", addGuests: "Faka izivakashi", destinations: "Izindawo", adventures: "Uhambo", reviews: "Ukubuyekezwa", blog: "Ibhulogi", signIn: "Ngena", stayBetter: "Hlala Kahle. Hlola Kujule.", experienceZim: "Izwa iZimbabwe.", unforgettable: "Izindawo Ezinhle", viewAll: "Buka Konke", filter: "Hlunga", priceRange: "Intengo", status: "Isimo", openNow: "Kuvuliwe", province: "Isifundazwe", category: "Uhlobo", applyFilters: "Sebenzisa", clearFilters: "Susa", footerDesc: "Ukuxhumanisa abahambi nezindawo ezihamba phambili eZimbabwe.", support: "Usizo", company: "Inkampani", newsletter: "Izindaba", subscribe: "Bhalisa", privacy: "Ubumfihlo", terms: "Imigomo", sitemap: "Imephu", contact: "Xhumana Nathi", settings: "Izilungiselelo", dashboard: "Ideshibhodi", collections: "Amaqoqo", activityType: "Uhlobo", clear: "Susa", aiPlanner: "AI Planner"
+            },
+            fr: { home: "Accueil", explore: "Explorer", about: "À propos", search: "Rechercher", checkIn: "Arrivée", checkOut: "Départ", guests: "Voyageurs", adults: "Adultes", children: "Enfants", whereTo: "Où allez-vous ?", signIn: "Connexion", settings: "Paramètres", dashboard: "Tableau de bord", collections: "Collections", aiPlanner: "Planificateur IA" },
+            es: { home: "Inicio", explore: "Explorar", about: "Nosotros", search: "Buscar", checkIn: "Llegada", checkOut: "Salida", guests: "Huéspedes", adults: "Adultos", children: "Niños", whereTo: "¿A dónde?", signIn: "Acceder", settings: "Ajustes", dashboard: "Panel", collections: "Colecciones", aiPlanner: "Planificador IA" },
+            de: { home: "Startseite", explore: "Entdecken", about: "Über uns", search: "Suche", checkIn: "Anreise", checkOut: "Abreise", guests: "Gäste", adults: "Erwachsene", children: "Kinder", whereTo: "Wohin?", signIn: "Anmelden", settings: "Einstellungen", dashboard: "Instrumententafel", collections: "Sammlungen", aiPlanner: "KI Planer" },
+            pt: { home: "Início", explore: "Explorar", about: "Sobre", search: "Pesquisar", checkIn: "Check-in", checkOut: "Check-out", guests: "Hóspedes", adults: "Adultos", children: "Crianças", whereTo: "Para onde?", signIn: "Entrar", settings: "Configurações", dashboard: "Painel", collections: "Colecciones", aiPlanner: "Planejador IA" },
+            sw: { home: "Nyumbani", explore: "Gundua", about: "Kuhusu", search: "Tafuta", checkIn: "Kuingia", checkOut: "Kutoka", guests: "Wageni", adults: "Watu wazima", children: "Watoto", whereTo: "Wapi?", signIn: "Weka sahihi", settings: "Mipangilio", dashboard: "Dashibodi", collections: "Mikusanyiko", aiPlanner: "Mpangaji wa AI" },
+            zu: { home: "Ekhaya", explore: "Hlola", about: "Mayelana", search: "Sesha", checkIn: "Ngena", checkOut: "Phuma", guests: "Izivakashi", adults: "Abantu abadala", children: "Izingane", whereTo: "Uyaphi?", signIn: "Ngena", settings: "Izilungiselelo", dashboard: "Ideshibhodi", collections: "Amaqoqo", aiPlanner: "Umhleli we-AI" },
+            zh: { home: "首页", explore: "探索", about: "关于我们", search: "搜索", checkIn: "入住", checkOut: "退房", guests: "房客", adults: "成人", children: "儿童", whereTo: "去哪里?", signIn: "登录", settings: "设置", dashboard: "仪表板", collections: "收藏", aiPlanner: "AI 规划师" }
+        };
+        
+        // --- INITIAL DATA ---
+        const INITIAL_LISTINGS = [
+            { 
+                id: 1, title: "The Residency at Leopard Rock", province: "Manicaland", town: "Vumba", location: "Vumba Mountains", mapLink: "https://maps.google.com",
+                price: 180, rating: 4.92, reviews: 128, image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=1000", 
+                gallery: ["https://images.unsplash.com/photo-1582719508461-905c673771fd"], category: "Resorts", type: "stay", collectionType: 'luxury',
+                amenities: ["Wifi", "Pool", "Spa", "Golf Course"], isOpen: true, tags: ["Luxury", "Mountain View", "Golf"], ageRequirement: 0,
+                description: "Experience world-class luxury in the mist of the Vumba Mountains. A historic hotel with modern amenities."
+            },
+            { 
+                id: 2, title: "Zambezi River Eco-Lodge", province: "Matabeleland North", town: "Victoria Falls", location: "Victoria Falls", mapLink: "https://maps.google.com",
+                price: 320, rating: 4.98, reviews: 84, image: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&q=80&w=1000", 
+                gallery: [], category: "Camps", type: "stay", collectionType: 'safari',
+                amenities: ["Wifi", "Safari", "River View"], isOpen: true, tags: ["Eco-Friendly", "Wildlife", "Big 5"], ageRequirement: 12,
+                description: "An eco-conscious lodge situated right on the banks of the mighty Zambezi. Listen to hippos while you sleep."
+            },
+            { 
+                id: 3, title: "Amanzi Restaurant Deck", province: "Harare", town: "Highlands", location: "Harare", mapLink: "https://maps.google.com",
+                price: 45, rating: 4.85, reviews: 340, image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000", 
+                gallery: [], category: "Restaurants", type: "culinary", collectionType: 'none',
+                amenities: ["Bar", "Live Music", "Garden"], isOpen: true, tags: ["Fine Dining", "Nightlife"], ageRequirement: 18,
+                description: "Award-winning dining experience in the heart of Harare's northern suburbs."
+            },
+            { 
+                id: 4, title: "Granite Stone Camp", province: "Matabeleland South", town: "Matopos", location: "Matobo Hills", mapLink: "https://maps.google.com",
+                price: 150, rating: 4.95, reviews: 42, image: "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=1000", 
+                gallery: [], category: "Camps", type: "camping", collectionType: 'adventure',
+                amenities: ["Hiking", "Fireplace", "Guided Walks"], isOpen: false, tags: ["Adventure", "History", "Rock Art"], ageRequirement: 0,
+                description: "Nestled among the balancing rocks of Matopos, this camp offers a primitive yet comfortable experience."
+            },
+            { 
+                id: 5, title: "Kariba Houseboat Luxury", province: "Mashonaland West", town: "Kariba", location: "Lake Kariba", mapLink: "https://maps.google.com",
+                price: 400, rating: 4.90, reviews: 56, image: "https://images.unsplash.com/photo-1544551763-46a8e3d69958?auto=format&fit=crop&q=80&w=1000", 
+                gallery: [], category: "Houseboats", type: "cruise", collectionType: 'family',
+                amenities: ["Chef", "Fishing", "Jacuzzi"], isOpen: true, tags: ["Water", "Safari", "Fishing"], ageRequirement: 0,
+                description: "The ultimate water safari. Cruise the vast Lake Kariba in style with a full crew."
+            },
+            { 
+                id: 6, title: "Nyanga Pine Cabin", province: "Manicaland", town: "Nyanga", location: "Nyanga", mapLink: "https://maps.google.com", 
+                price: 95, rating: 4.75, reviews: 210, image: "https://images.unsplash.com/photo-1449156493391-d2cfa28e468b?auto=format&fit=crop&q=80&w=1000", 
+                gallery: [], category: "Cabins", type: "stay", collectionType: 'romantic', amenities: ["Fireplace", "Self-Catering"], isOpen: true, tags: ["Cozy", "Forest"], ageRequirement: 0,
+                description: "A cozy pine cabin in the Eastern Highlands, perfect for winter nights." 
+            },
+        ];
+        
+        const PROVINCES = ["Harare", "Bulawayo", "Manicaland", "Mashonaland Central", "Mashonaland East", "Mashonaland West", "Masvingo", "Matabeleland North", "Matabeleland South", "Midlands"];
+        
+        // --- APP STATE ---
+        let state = {
+            view: ViewState.HOME,
+            theme: Theme.LIGHT,
+            lang: Language.EN,
+            searchParams: {},
+            authOpen: false,
+            aiPlannerOpen: false,
+            user: null,
+            listings: [...INITIAL_LISTINGS],
+            mobileMenuOpen: false,
+            activeDropdown: null,
+            scrolled: false
+        };
+        
+        // --- HELPER FUNCTIONS ---
+        function t(key) {
+            const dict = TRANSLATIONS[state.lang];
+            return dict?.[key] || TRANSLATIONS['en'][key] || key;
+        }
+        
+        function navigate(newView, params = null) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (params) state.searchParams = params;
+            state.view = newView;
+            state.activeDropdown = null;
+            state.mobileMenuOpen = false;
+            render();
+        }
+        
+        function setTheme(theme) {
+            state.theme = theme;
+            document.documentElement.classList.toggle('dark', theme === Theme.DARK);
+            localStorage.setItem('panora-theme', theme);
+            render();
+        }
+        
+        function setLang(lang) {
+            state.lang = lang;
+            localStorage.setItem('panora-lang', lang);
+            render();
+        }
+        
+        function handleLogin(type) {
+            state.user = {
+                name: type === UserType.PARTNER ? "Victor Makwarimba" : "Traveler Guest",
+                email: "victor@example.com",
+                type: type,
+                avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100",
+                bio: "Lover of African sunsets and safari adventures."
+            };
+            state.authOpen = false;
+            if (type === UserType.PARTNER) navigate(ViewState.DASHBOARD);
+            else render();
+        }
+        
+        function handleLogout() {
+            state.user = null;
+            navigate(ViewState.HOME);
+        }
+        
+        function addListing(newListing) {
+            state.listings = [newListing, ...state.listings];
+            render();
+        }
+        
+        function updateListing(updatedListing) {
+            state.listings = state.listings.map(l => l.id === updatedListing.id ? updatedListing : l);
+            render();
+        }
+        
+        function deleteListing(id) {
+            if (window.confirm("Are you sure you want to delete this listing?")) {
+                state.listings = state.listings.filter(l => l.id !== id);
+                render();
+            }
+        }
+        
+        // --- RENDER FUNCTION ---
+        function render() {
+            const app = document.getElementById('app');
+            if (!app) return;
+            
+            app.innerHTML = `
+                <div class="min-h-screen transition-colors duration-300 ${state.theme === Theme.DARK ? 'bg-slate-950 text-white' : 'bg-[#FAFAF9] text-slate-900'}">
+                    ${state.view !== ViewState.DASHBOARD ? Navbar() : ''}
+                    
+                    ${AuthModal()}
+                    ${AIPlannerModal()}
+                    
+                    <main>
+                        ${renderView()}
+                    </main>
+                    
+                    ${state.view !== ViewState.DASHBOARD ? Footer() : ''}
                 </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-8">{editing ? 'Edit Property' : 'Add New Property'}</h1>
-            <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div><label className="block text-sm font-bold mb-1">Property Title</label><input required className="w-full p-3 rounded-lg border" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} /></div>
-                <div><label className="block text-sm font-bold mb-1">Category</label><select className="w-full p-3 rounded-lg border" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option>Resorts</option><option>Camps</option><option>Lodges</option><option>Hotels</option></select></div>
-                <div><label className="block text-sm font-bold mb-1">Price ($)</label><input required type="number" className="w-full p-3 rounded-lg border" value={form.price} onChange={e=>setForm({...form,price:e.target.value})} /></div>
-                <div><label className="block text-sm font-bold mb-1">Age Requirement</label><input type="number" className="w-full p-3 rounded-lg border" value={form.ageRequirement} onChange={e=>setForm({...form,ageRequirement:e.target.value})} /></div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 dark:bg-slate-900 rounded-xl">
-                <div><label className="block text-sm font-bold mb-1">Province</label><select className="w-full p-3 rounded-lg border" value={form.province} onChange={e=>setForm({...form,province:e.target.value})}>{PROVINCES.map(p=> <option key={p}>{p}</option>)}</select></div>
-                <div><label className="block text-sm font-bold mb-1">Town/Location</label><input required className="w-full p-3 rounded-lg border" value={form.town} onChange={e=>setForm({...form,town:e.target.value})} /></div>
-                <div className="col-span-2"><label className="block text-sm font-bold mb-1">Map Link</label><input className="w-full p-3 rounded-lg border" value={form.mapLink} onChange={e=>setForm({...form,mapLink:e.target.value})} /></div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-2">Description <button type="button" onClick={handleGenerateDescription} className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Auto-Write with AI</button></label>
-                <textarea required className="w-full p-3 rounded-lg border h-32" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}></textarea>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div><label className="block text-sm font-bold mb-1">Main Image URL</label><input className="w-full p-3 rounded-lg border" value={form.image} onChange={e=>setForm({...form,image:e.target.value})} /></div>
-                <div><label className="block text-sm font-bold mb-1">Tags (comma separated)</label><input className="w-full p-3 rounded-lg border" value={form.tags} onChange={e=>setForm({...form,tags:e.target.value})} /></div>
-              </div>
-
-              <div className="flex justify-end gap-3">
-                <button type="button" onClick={()=>{ setEditing(null); setForm(initialForm); setActiveTab('listings'); }} className="py-3 px-6 border rounded-lg">Cancel</button>
-                <button type="submit" className="py-3 px-6 bg-amber-500 text-white rounded-lg">Save</button>
-              </div>
-            </form>
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-
-// ---------- AI Planner Modal ----------
-function AIPlannerModal({ onClose }) {
-  const [step, setStep] = useState(1);
-  const [destination, setDestination] = useState('Zimbabwe');
-  const [days, setDays] = useState(5);
-  const [budget, setBudget] = useState('Medium');
-  const [interests, setInterests] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState('');
-
-  const interestOptions = ["Safari","History","Food","Relaxation","Hiking","Water Sports","Photography","Culture"];
-
-  const handleGenerate = async () => {
-    setLoading(true);
-    const prompt = `Act as an expert travel guide for ${destination}. ${days}-day itinerary. Budget: ${budget}. Interests: ${interests.join(', ')}`;
-    const text = await generateGeminiContent(prompt);
-    setResult(text);
-    setLoading(false);
-    setStep(2);
-  };
-
-  if (!onClose) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 flex justify-between items-center text-white">
-          <div className="flex items-center space-x-3"><div className="bg-white/20 p-2 rounded-full"><SparklesIcon /></div><div><h2 className="text-2xl font-bold">AI Trip Planner</h2><p className="text-indigo-100 text-sm">Powered by Gemini AI (stub)</p></div></div>
-          <button onClick={onClose} className="p-2">✖️</button>
-        </div>
-
-        <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
-          {step===1 ? (
-            <div className="space-y-6">
-              <div><label className="block text-sm font-bold mb-2">Where do you want to go?</label><input value={destination} onChange={e=>setDestination(e.target.value)} className="w-full p-4 rounded-xl border dark:bg-slate-800" /></div>
-              <div className="grid grid-cols-2 gap-6">
-                <div><label className="block text-sm font-bold mb-2">Duration</label><select value={days} onChange={e=>setDays(Number(e.target.value))} className="w-full p-4 rounded-xl border"><option>3</option><option>4</option><option>5</option><option>7</option></select></div>
-                <div><label className="block text-sm font-bold mb-2">Budget</label><select value={budget} onChange={e=>setBudget(e.target.value)} className="w-full p-4 rounded-xl border"><option>Shoestring</option><option>Medium</option><option>Luxury</option></select></div>
-              </div>
-
-              <div><label className="block text-sm font-bold mb-2">Interests</label><div className="flex flex-wrap gap-3">{interestOptions.map(i=> <button type="button" key={i} onClick={()=> setInterests(prev=> prev.includes(i)? prev.filter(x=>x!==i) : [...prev,i]) } className={`px-4 py-2 rounded-full font-bold text-sm ${interests.includes(i)?'bg-indigo-600 text-white':'bg-slate-100 dark:bg-slate-800'}`}>{i}</button>)}</div></div>
-
-              <button onClick={handleGenerate} disabled={loading} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold">{loading? 'Designing...' : 'Generate Itinerary'}</button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="prose max-w-none dark:prose-invert whitespace-pre-line">{result}</div>
-              <div className="pt-6 border-t border-slate-100 dark:border-slate-700 flex space-x-4"><button onClick={()=>{ setStep(1); setResult(''); setInterests([]); }} className="flex-1 py-3 border rounded-xl">Start Over</button><button onClick={onClose} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl">Save Plan</button></div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------- Auth Modal ----------
-function AuthModal({ onClose, onLogin }) {
-  const [mode, setMode] = useState('traveler');
-  if (!onClose) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose}/>
-      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md z-10">
-        <div className="flex justify-between items-center mb-4"><div className="text-xl font-bold">Sign In</div><button onClick={onClose}>✖️</button></div>
-        <div className="flex border-b mb-4">
-          <button onClick={()=>setMode('traveler')} className={`flex-1 py-3 ${mode==='traveler'?'text-amber-500 border-b-2 border-amber-500':''}`}>Traveler</button>
-          <button onClick={()=>setMode('partner')} className={`flex-1 py-3 ${mode==='partner'?'text-amber-500 border-b-2 border-amber-500':''}`}>Partner</button>
-        </div>
-        <div className="p-6 text-center">
-          <div className="mb-4">{mode==='traveler' ? 'Enter as Traveler' : 'Partner Login'}</div>
-          <button onClick={()=>onLogin(mode)} className="w-full bg-amber-500 text-white py-3 rounded-lg">{mode==='traveler'? 'Enter as Traveler' : 'Enter Dashboard'}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------- AboutUs ----------
-function AboutUs() {
-  return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 pt-24">
-      <div className="max-w-7xl mx-auto px-6 py-20">
-        <h1 className="text-4xl font-bold mb-4">Our Story</h1>
-        <p className="text-slate-600">{t('aboutText')}</p>
-      </div>
-    </div>
-  );
-}
-
-// ---------- Footer ----------
-function Footer({ navigate }) {
-  return (
-    <footer className="bg-slate-950 text-white py-16 border-t border-slate-900 mt-12">
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
-        <div><div className="font-bold text-2xl mb-6">PANORA<span className="text-amber-500">.</span></div><p className="text-slate-400 text-sm">{t('footerDesc')}</p></div>
-        <div><h4 className="font-bold text-lg mb-6">Company</h4><ul className="space-y-3 text-slate-400 text-sm"><li><button onClick={()=>navigate('about')}>About</button></li><li><button onClick={()=>navigate('careers')}>Careers</button></li></ul></div>
-        <div><h4 className="font-bold text-lg mb-6">Support</h4><ul className="space-y-3 text-slate-400 text-sm"><li><a href={`mailto:${ADMIN_EMAIL}`} className="hover:text-amber-500">Contact Support</a></li></ul></div>
-        <div><h4 className="font-bold text-lg mb-6">Newsletter</h4><div className="flex"><input placeholder="Email" className="bg-slate-900 border border-slate-800 text-white p-2 rounded-l" /><button className="bg-amber-500 px-4 rounded-r">Subscribe</button></div></div>
-      </div>
-    </footer>
-  );
-}
-
-// ---------- Render ----------
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-
-</script>
+            `;
+            
+            // Attach event listeners after rendering
+            attachEventListeners();
+        }
+        
+        function renderView() {
+            switch(state.view) {
+                case ViewState.HOME:
+                    return Home();
+                case ViewState.EXPLORE:
+                    return Explore();
+                case ViewState.COLLECTIONS:
+                    return Collections();
+                case ViewState.ABOUT:
+                    return AboutUs();
+                case ViewState.SETTINGS:
+                    return state.user ? SettingsPage() : '';
+                case ViewState.DASHBOARD:
+                    return PartnerDashboard();
+                case ViewState.HOSTING:
+                    return Hosting();
+                case ViewState.BLOG:
+                    return Blog();
+                case ViewState.REVIEWS:
+                    return Reviews();
+                case ViewState.PRIVACY:
+                case ViewState.TERMS:
+                case ViewState.SITEMAP:
+                case ViewState.HELP:
+                case ViewState.SAFETY:
+                case ViewState.CANCELLATION:
+                case ViewState.CAREERS:
+                    return LegalPage();
+                default:
+                    return Home();
+            }
+        }
+        
+        // --- COMPONENTS ---
+        
+        function Navbar() {
+            const languages = [
+                { code: Language.EN, label: 'English' }, 
+                { code: Language.SN, label: 'Shona' }, 
+                { code: Language.NR, label: 'Ndebele' },
+                { code: Language.FR, label: 'Français' }, 
+                { code: Language.ES, label: 'Español' }, 
+                { code: Language.DE, label: 'Deutsch' },
+                { code: Language.PT, label: 'Português' }, 
+                { code: Language.SW, label: 'Swahili' }, 
+                { code: Language.ZU, label: 'Zulu' },
+                { code: Language.ZH, label: 'Chinese' }
+            ];
+            
+            const navClasses = `fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+                state.scrolled || state.mobileMenuOpen 
+                    ? 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-lg py-3 text-slate-900 dark:text-white' 
+                    : 'bg-transparent py-5 text-white'
+            }`;
+            
+            return `
+                <nav class="${navClasses}" id="navbar">
+                    <div class="max-w-7xl mx-auto px-6 flex justify-between items-center relative">
+                        <div onclick="navigate('${ViewState.HOME}')" class="font-bold text-2xl tracking-tighter cursor-pointer z-50 flex items-center relative hover:scale-105 transition-transform">
+                            PANORA<span class="text-amber-500">.</span>
+                        </div>
+                        
+                        <!-- Desktop Menu -->
+                        <div class="hidden lg:flex space-x-8 font-medium h-full items-center">
+                            <button onclick="navigate('${ViewState.ABOUT}')" class="hover:text-amber-500 transition-colors">${t('about')}</button>
+                            <button onclick="navigate('${ViewState.COLLECTIONS}')" class="hover:text-amber-500 transition-colors">${t('collections')}</button>
+                            <button onclick="navigate('${ViewState.EXPLORE}')" class="hover:text-amber-500 transition-colors">${t('explore')}</button>
+                            
+                            <button onclick="state.aiPlannerOpen = true; render();" class="flex items-center space-x-2 text-amber-500 font-bold animate-pulse hover:animate-none">
+                                <svg class="w-4 h-4"><use xlink:href="#icon-sparkles"></use></svg>
+                                <span>${t('aiPlanner')}</span>
+                            </button>
+                            
+                            <!-- Language Switcher -->
+                            <div class="relative group h-full flex items-center cursor-pointer" id="language-switcher">
+                                <button class="flex items-center space-x-1 hover:text-amber-500 transition-colors">
+                                    <svg class="w-4 h-4"><use xlink:href="#icon-globe"></use></svg>
+                                    <span class="uppercase">${state.lang}</span>
+                                </button>
+                                <div class="absolute top-full right-0 w-48 pt-2 hidden group-hover:block">
+                                    <div class="bg-white dark:bg-slate-800 shadow-xl rounded-xl border border-slate-100 dark:border-slate-700 overflow-hidden max-h-64 overflow-y-auto">
+                                        ${languages.map(l => `
+                                            <button onclick="setLang('${l.code}')" class="w-full text-left px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 ${state.lang === l.code ? 'font-bold text-amber-500' : 'text-slate-600 dark:text-slate-300'}">
+                                                ${l.label}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="hidden lg:flex items-center space-x-4">
+                            <button onclick="setTheme('${state.theme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT}')" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                                ${state.theme === Theme.LIGHT ? 
+                                    '<svg class="w-5 h-5"><use xlink:href="#icon-moon"></use></svg>' : 
+                                    '<svg class="w-5 h-5 text-amber-400"><use xlink:href="#icon-sun"></use></svg>'
+                                }
+                            </button>
+                            
+                            ${state.user ? `
+                                <div class="flex items-center space-x-3 bg-slate-100 dark:bg-slate-800 rounded-full pl-2 pr-4 py-1 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" onclick="navigate('${state.user.type === UserType.PARTNER ? ViewState.DASHBOARD : ViewState.SETTINGS}')">
+                                    <img src="${state.user.avatar}" alt="User" class="w-8 h-8 rounded-full border border-slate-200" />
+                                    <div class="flex flex-col">
+                                        <span class="text-xs font-bold leading-none dark:text-white max-w-[80px] truncate">${state.user.name}</span>
+                                    </div>
+                                </div>
+                            ` : `
+                                <button onclick="state.authOpen = true; render();" class="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-full font-semibold transition-transform hover:scale-105 shadow-lg flex items-center space-x-2">
+                                    <svg class="w-4 h-4"><use xlink:href="#icon-user"></use></svg>
+                                    <span>${t('signIn')}</span>
+                                </button>
+                            `}
+                        </div>
+                        
+                        <!-- Mobile Toggle -->
+                        <div class="lg:hidden flex items-center space-x-4">
+                            <button onclick="setTheme('${state.theme === Theme.LIGHT ? Theme.DARK : Theme.LIGHT}')" class="p-2 rounded-full hover:bg-white/20 transition-colors">
+                                ${state.theme === Theme.LIGHT ? 
+                                    '<svg class="w-5 h-5"><use xlink:href="#icon-moon"></use></svg>' : 
+                                    '<svg class="w-5 h-5 text-amber-400"><use xlink:href="#icon-sun"></use></svg>'
+                                }
+                            </button>
+                            <button onclick="state.mobileMenuOpen = !state.mobileMenuOpen; render();" class="p-2">
+                                ${state.mobileMenuOpen ? 
+                                    '<svg class="w-6 h-6"><use xlink:href="#icon-x"></use></svg>' : 
+                                    '<svg class="w-6 h-6"><use xlink:href="#icon-menu"></use></svg>'
+                                }
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Mobile Menu -->
+                    ${state.mobileMenuOpen ? `
+                        <div class="lg:hidden bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 overflow-hidden shadow-2xl animate-in">
+                            <div class="flex flex-col p-6 space-y-4 font-medium text-slate-800 dark:text-slate-200">
+                                <button onclick="navigate('${ViewState.EXPLORE}');" class="text-left py-2 border-b border-slate-100 dark:border-slate-800">${t('explore')}</button>
+                                <button onclick="navigate('${ViewState.COLLECTIONS}');" class="text-left py-2 border-b border-slate-100 dark:border-slate-800">${t('collections')}</button>
+                                <button onclick="state.aiPlannerOpen = true; render();" class="text-left py-2 border-b border-slate-100 dark:border-slate-800 flex items-center text-amber-500 font-bold">
+                                    <svg class="w-4 h-4 mr-2"><use xlink:href="#icon-sparkles"></use></svg>${t('aiPlanner')}
+                                </button>
+                                
+                                <button onclick="navigate('${ViewState.SETTINGS}');" class="text-left py-2 border-b border-slate-100 dark:border-slate-800 flex items-center">
+                                    <svg class="w-4 h-4 mr-2"><use xlink:href="#icon-settings"></use></svg>${t('settings')}
+                                </button>
+                                
+                                <div class="py-2 border-b border-slate-100 dark:border-slate-800">
+                                    <span class="text-xs text-slate-400 font-bold uppercase mb-2 block">Language</span>
+                                    <div class="grid grid-cols-4 gap-2">
+                                        ${languages.slice(0, 8).map(l => `
+                                            <button onclick="setLang('${l.code}')" class="px-2 py-1 rounded text-xs border ${state.lang === l.code ? 'bg-amber-500 text-white border-amber-500' : 'border-slate-300 dark:border-slate-700'}">
+                                                ${l.code.toUpperCase()}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                
+                                ${state.user ? `
+                                    <div class="pt-4 flex items-center justify-between">
+                                        <div class="flex items-center space-x-2">
+                                            <img src="${state.user.avatar}" alt="User" class="w-10 h-10 rounded-full" />
+                                            <span class="font-bold">${state.user.name}</span>
+                                        </div>
+                                        <button onclick="handleLogout()" class="text-red-500 font-bold text-sm">Sign Out</button>
+                                    </div>
+                                ` : `
+                                    <button onclick="state.authOpen = true; render();" class="w-full bg-amber-500 text-white py-3 rounded-xl font-bold mt-4">${t('signIn')}</button>
+                                `}
+                            </div>
+                        </div>
+                    ` : ''}
+                </nav>
+            `;
+        }
+        
+        function AuthModal() {
+            if (!state.authOpen) return '';
+            
+            return `
+                <div class="fixed inset-0 z-[100] flex items-center justify-center px-4 animate-in">
+                    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="state.authOpen = false; render();"></div>
+                    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 zoom-in-95">
+                        <button onclick="state.authOpen = false; render();" class="absolute top-4 right-4 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full dark:text-white">
+                            <svg class="w-5 h-5"><use xlink:href="#icon-x"></use></svg>
+                        </button>
+                        <div class="flex border-b border-slate-200 dark:border-slate-700">
+                            <button onclick="state.authMode = 'traveler'; render();" class="flex-1 py-4 font-bold transition-colors ${state.authMode === 'traveler' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-slate-500 hover:text-slate-700'}">Traveler</button>
+                            <button onclick="state.authMode = 'partner'; render();" class="flex-1 py-4 font-bold transition-colors ${state.authMode === 'partner' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-slate-500 hover:text-slate-700'}">Partner</button>
+                        </div>
+                        <div class="p-8">
+                            <div class="text-center mb-6">
+                                ${state.authMode === 'traveler' ? 
+                                    '<svg class="w-10 h-10 mx-auto text-amber-500 mb-2"><use xlink:href="#icon-user"></use></svg>' : 
+                                    '<svg class="w-10 h-10 mx-auto text-amber-500 mb-2"><use xlink:href="#icon-briefcase"></use></svg>'
+                                }
+                                <h3 class="text-2xl font-bold text-slate-900 dark:text-white">${state.authMode === 'traveler' ? t('signIn') : 'Partner Login'}</h3>
+                            </div>
+                            <button onclick="handleLogin('${state.authMode}')" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-lg flex justify-center items-center">
+                                ${state.authMode === 'traveler' ? 'Enter as Traveler' : 'Enter Dashboard'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function AIPlannerModal() {
+            if (!state.aiPlannerOpen) return '';
+            
+            return `
+                <div class="fixed inset-0 z-[100] flex items-center justify-center px-4 animate-in">
+                    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="state.aiPlannerOpen = false; render();"></div>
+                    <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative z-10 flex flex-col max-h-[90vh]">
+                        <!-- Header -->
+                        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 flex justify-between items-center text-white">
+                            <div class="flex items-center space-x-3">
+                                <div class="bg-white/20 p-2 rounded-full">
+                                    <svg class="w-6 h-6 text-amber-300"><use xlink:href="#icon-sparkles"></use></svg>
+                                </div>
+                                <div>
+                                    <h2 class="text-2xl font-bold">AI Trip Planner</h2>
+                                    <p class="text-indigo-100 text-sm">Powered by Gemini AI</p>
+                                </div>
+                            </div>
+                            <button onclick="state.aiPlannerOpen = false; render();" class="p-2 hover:bg-white/10 rounded-full">
+                                <svg class="w-6 h-6"><use xlink:href="#icon-x"></use></svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Body -->
+                        <div class="p-8 overflow-y-auto flex-1 custom-scrollbar">
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">Where do you want to go?</label>
+                                    <input type="text" id="ai-destination" value="Zimbabwe" class="w-full p-4 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white text-lg font-bold focus:border-indigo-500 outline-none transition-colors" placeholder="e.g. Victoria Falls, Harare" />
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">Duration</label>
+                                        <select id="ai-days" class="w-full p-4 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white font-bold outline-none">
+                                            ${[3,4,5,7,10,14,21].map(d => `<option value="${d}" ${d === 5 ? 'selected' : ''}>${d} Days</option>`).join('')}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">Budget</label>
+                                        <select id="ai-budget" class="w-full p-4 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 dark:text-white font-bold outline-none">
+                                            <option>Shoestring</option>
+                                            <option selected>Medium</option>
+                                            <option>Luxury</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">Interests</label>
+                                    <div class="flex flex-wrap gap-3" id="ai-interests">
+                                        ${['Safari', 'History', 'Food', 'Relaxation', 'Hiking', 'Water Sports', 'Photography', 'Culture'].map(int => `
+                                            <button type="button" onclick="toggleInterest(this, '${int}')" class="px-4 py-2 rounded-full font-bold text-sm transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200">
+                                                ${int}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                
+                                <button onclick="generateItinerary()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center space-x-2">
+                                    <svg class="w-5 h-5"><use xlink:href="#icon-sparkles"></use></svg>
+                                    <span>Generate Itinerary</span>
+                                </button>
+                                
+                                <div id="ai-result" class="hidden">
+                                    <div class="prose dark:prose-invert max-w-none mt-6">
+                                        <div id="ai-result-content" class="whitespace-pre-line leading-relaxed text-slate-700 dark:text-slate-300"></div>
+                                    </div>
+                                    <div class="pt-6 border-t border-slate-100 dark:border-slate-700 flex space-x-4">
+                                        <button onclick="resetAIPlanner()" class="flex-1 py-3 border-2 border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">Start Over</button>
+                                        <button onclick="state.aiPlannerOpen = false; render();" class="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg">Save Plan</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function Home() {
+            return `
+                <main>
+                    <div class="relative h-[95vh] w-full overflow-hidden bg-slate-900">
+                        <!-- Background Video -->
+                        <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-slate-950"></div>
+                        <div class="relative z-10 h-full flex flex-col justify-center items-center px-4 text-center pt-20">
+                            <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-6 max-w-5xl">
+                                ${t('stayBetter')} <br><span class="text-amber-400">${t('experienceZim')}</span>
+                            </h1>
+                            <div class="w-full max-w-5xl mb-6">${SearchBar()}</div>
+                            
+                            <button onclick="state.aiPlannerOpen = true; render();" class="flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:shadow-indigo-500/50 transition-all hover:scale-105">
+                                <svg class="w-5 h-5 text-amber-300"><use xlink:href="#icon-sparkles"></use></svg>
+                                <span>Plan My Trip with AI</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <section class="max-w-7xl mx-auto px-6 py-20">
+                        <div class="flex justify-between items-end mb-8">
+                            <div>
+                                <h2 class="text-3xl font-bold mb-2 dark:text-white">${t('unforgettable')}</h2>
+                                <p class="text-slate-500 dark:text-slate-400">From hidden gems to iconic destinations.</p>
+                            </div>
+                            <button onclick="navigate('${ViewState.EXPLORE}')" class="flex items-center space-x-1 font-semibold text-slate-900 dark:text-amber-400 hover:text-amber-600 transition-colors">
+                                <span>${t('viewAll')}</span>
+                                <svg class="w-4 h-4"><use xlink:href="#icon-chevron-right"></use></svg>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            ${state.listings.slice(0, 4).map(listing => ListingCard(listing)).join('')}
+                        </div>
+                    </section>
+                    
+                    <section class="max-w-7xl mx-auto px-6 py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <div class="font-bold text-3xl tracking-tighter text-slate-900 dark:text-white mb-6">PANORA<span class="text-amber-500">.</span></div>
+                            <h2 class="text-4xl font-bold mb-4 dark:text-white">Book the Best Tours & Safaris</h2>
+                            <p class="text-slate-600 dark:text-slate-400 text-lg mb-8">Panora makes exploring and booking organized adventures effortless. Whether you're looking for a luxury houseboat on Kariba or a rugged hike in Chimanimani, we streamline your booking experience.</p>
+                            <div class="flex space-x-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
+                                <div class="pt-1">
+                                    <svg class="w-6 h-6 text-amber-500"><use xlink:href="#icon-smartphone"></use></svg>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold dark:text-white">Adventure at Your Fingertips</h4>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">We put Zimbabwe in your pocket. Explore thousands of trips, receive real-time updates, and manage bookings effortlessly.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative h-96 rounded-2xl overflow-hidden shadow-2xl">
+                            <img src="https://images.unsplash.com/photo-1523805009345-7448845a9e53?auto=format&fit=crop&q=80&w=1000" class="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700" alt="Safari" />
+                        </div>
+                    </section>
+                </main>
+            `;
+        }
+        
+        function SearchBar() {
+            return `
+                <div class="relative z-40 w-full">
+                    <div class="bg-white dark:bg-slate-800 rounded-[2rem] p-2 shadow-xl flex flex-col md:flex-row items-center relative border border-slate-100 dark:border-slate-700">
+                        <!-- Location Input -->
+                        <div class="flex-1 px-6 py-3 w-full relative">
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wide">${t('whereTo')}</label>
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 text-slate-400 mr-2"><use xlink:href="#icon-map-pin"></use></svg>
+                                <input type="text" id="search-location" placeholder="${t('searchDestinations')}" class="w-full bg-transparent outline-none font-bold text-slate-800 dark:text-white placeholder-slate-300" />
+                            </div>
+                        </div>
+                        
+                        <!-- Dates -->
+                        <div class="w-full md:w-auto px-6 py-3 border-l-0 md:border-l border-slate-100 dark:border-slate-700">
+                            <label class="block text-xs font-bold text-slate-500 uppercase">${t('checkIn')}</label>
+                            <input type="date" id="search-checkin" class="bg-transparent font-bold text-slate-800 dark:text-white text-sm outline-none w-full md:w-32 cursor-pointer" />
+                        </div>
+                        
+                        <div class="w-full md:w-auto px-6 py-3 border-l-0 md:border-l border-slate-100 dark:border-slate-700">
+                            <label class="block text-xs font-bold text-slate-500 uppercase">${t('checkOut')}</label>
+                            <input type="date" id="search-checkout" class="bg-transparent font-bold text-slate-800 dark:text-white text-sm outline-none w-full md:w-32 cursor-pointer" />
+                        </div>
+                        
+                        <!-- Guests -->
+                        <div class="w-full md:w-auto px-6 py-3 border-l-0 md:border-l border-slate-100 dark:border-slate-700">
+                            <label class="block text-xs font-bold text-slate-500 uppercase">${t('guests')}</label>
+                            <input type="number" id="search-guests" min="1" value="1" class="bg-transparent font-bold text-slate-800 dark:text-white text-sm outline-none w-full md:w-16" />
+                        </div>
+                        
+                        <div class="p-2 w-full md:w-auto">
+                            <button onclick="handleSearch()" class="w-full md:w-auto bg-amber-500 hover:bg-amber-600 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-105 flex justify-center items-center">
+                                <svg class="w-5 h-5"><use xlink:href="#icon-search"></use></svg>
+                                <span class="md:hidden ml-2 font-bold">${t('search')}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function Explore() {
+            return `
+                <div class="pt-24 pb-20 max-w-7xl mx-auto px-6 min-h-screen flex flex-col gap-8">
+                    <!-- Search Bar in Explore -->
+                    <div class="w-full max-w-4xl mx-auto mb-8">
+                        ${SearchBar()}
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row gap-8">
+                        <!-- Sidebar Filters -->
+                        <aside class="w-full md:w-64 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-100 dark:border-slate-800 h-fit md:sticky md:top-24 shadow-sm">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="font-bold text-lg dark:text-white flex items-center">
+                                    <svg class="w-4 h-4 mr-2"><use xlink:href="#icon-filter"></use></svg> ${t('filter')}
+                                </h3>
+                                <button onclick="clearFilters()" class="text-xs text-amber-500 font-bold hover:underline">${t('clear')}</button>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label class="flex items-center justify-between cursor-pointer group">
+                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">${t('openNow')}</span>
+                                    <div onclick="toggleFilter('isOpen')" id="filter-open-now" class="w-12 h-6 rounded-full flex items-center px-1 transition-colors bg-slate-300 dark:bg-slate-700">
+                                        <div class="w-4 h-4 bg-white rounded-full shadow transition-transform"></div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">${t('priceRange')} (Max: $<span id="price-value">1000</span>)</label>
+                                <input type="range" id="price-filter" min="0" max="1000" value="1000" class="w-full accent-amber-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" />
+                                <div class="flex justify-between text-xs text-slate-500 mt-1">
+                                    <span>$0</span>
+                                    <span>$1000+</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">${t('province')}</label>
+                                <select id="province-filter" class="w-full p-2 rounded-lg border dark:bg-slate-800 dark:border-slate-700 dark:text-white text-sm outline-none focus:border-amber-500">
+                                    <option value="All">All Provinces</option>
+                                    ${PROVINCES.map(p => `<option value="${p}">${p}</option>`).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">${t('activityType')}</label>
+                                <div class="space-y-2">
+                                    ${['All', 'stay', 'activity', 'culinary', 'camping', 'cruise'].map(type => `
+                                        <label class="flex items-center space-x-2 cursor-pointer">
+                                            <input type="radio" name="type-filter" value="${type}" ${type === 'All' ? 'checked' : ''} class="accent-amber-500" />
+                                            <span class="text-sm text-slate-600 dark:text-slate-400 capitalize">${type}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </aside>
+                        
+                        <!-- Results Grid -->
+                        <div class="flex-1">
+                            <div class="flex justify-between items-end mb-6">
+                                <div>
+                                    <h1 class="text-3xl font-bold dark:text-white">${t('explore')} Zimbabwe</h1>
+                                    <p class="text-slate-500 text-sm mt-1"><span id="result-count">${state.listings.length}</span> results found</p>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="explore-results">
+                                ${state.listings.map(listing => ListingCard(listing)).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function Collections() {
+            const collections = [
+                { id: 'luxury', title: "Luxury Escapes", desc: "Indulge in the finest accommodations.", img: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1000" },
+                { id: 'safari', title: "Wild Safari", desc: "Get close to nature's giants.", img: "https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&q=80&w=1000" },
+                { id: 'family', title: "Family Fun", desc: "Adventures for all ages.", img: "https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=1000" },
+                { id: 'adventure', title: "Pure Adventure", desc: "Adrenaline pumping activities.", img: "https://images.unsplash.com/photo-1533240332313-0db49b459ad6?auto=format&fit=crop&q=80&w=1000" },
+                { id: 'romantic', title: "Romantic Getaways", desc: "Perfect for couples.", img: "https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=1000" }
+            ];
+            
+            return `
+                <div class="pt-24 px-6 min-h-screen max-w-7xl mx-auto pb-20">
+                    <h1 class="text-5xl font-bold dark:text-white mb-4">${t('collections')}</h1>
+                    <p class="text-xl text-slate-500 mb-12 max-w-2xl">Curated experiences designed to help you find the perfect trip, no matter your style.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
+                        ${collections.slice(0, 2).map(c => `
+                            <div onclick="navigate('${ViewState.EXPLORE}', { category: '${c.id}' })" class="relative h-96 rounded-3xl overflow-hidden cursor-pointer group shadow-xl">
+                                <img src="${c.img}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/>
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-8">
+                                    <h3 class="text-3xl font-bold text-white mb-2">${c.title}</h3>
+                                    <p class="text-slate-300">${c.desc}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <h2 class="text-3xl font-bold dark:text-white mb-8">More to Explore</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        ${collections.slice(2).map(c => `
+                            <div onclick="navigate('${ViewState.EXPLORE}', { category: '${c.id}' })" class="relative h-64 rounded-2xl overflow-hidden cursor-pointer group shadow-lg">
+                                <img src="${c.img}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/>
+                                <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                    <h3 class="text-2xl font-bold text-white border-b-2 border-amber-500 pb-2">${c.title}</h3>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function AboutUs() {
+            return `
+                <div class="min-h-screen bg-white dark:bg-slate-950">
+                    <div class="relative h-[60vh] overflow-hidden">
+                        <div class="absolute inset-0 bg-black/50 z-10"></div>
+                        <div class="relative z-20 h-full flex flex-col justify-center items-center text-center px-6">
+                            <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight">Our Story</h1>
+                            <p class="text-xl text-slate-200 max-w-2xl">Connecting the world to the heart of Zimbabwe.</p>
+                        </div>
+                    </div>
+                    
+                    <section class="max-w-4xl mx-auto px-6 py-20 text-center">
+                        <h2 class="text-3xl font-bold dark:text-white mb-8">Mission & Vision</h2>
+                        <p class="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-12">
+                            Panora was born from a love for the untold stories of Zimbabwe. We believe that travel isn't just about visiting a place; it's about connecting with its soul.
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl">
+                                <svg class="w-12 h-12 text-amber-500 mx-auto mb-4"><use xlink:href="#icon-award"></use></svg>
+                                <h3 class="font-bold dark:text-white mb-2">Excellence</h3>
+                            </div>
+                            <div class="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl">
+                                <svg class="w-12 h-12 text-amber-500 mx-auto mb-4"><use xlink:href="#icon-users"></use></svg>
+                                <h3 class="font-bold dark:text-white mb-2">Community</h3>
+                            </div>
+                            <div class="p-6 bg-slate-50 dark:bg-slate-900 rounded-2xl">
+                                <svg class="w-12 h-12 text-amber-500 mx-auto mb-4"><use xlink:href="#icon-globe"></use></svg>
+                                <h3 class="font-bold dark:text-white mb-2">Sustainability</h3>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
+        
+        function SettingsPage() {
+            if (!state.user) return '';
+            
+            return `
+                <div class="pt-24 px-6 min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
+                    <div class="max-w-4xl mx-auto">
+                        <h1 class="text-3xl font-bold dark:text-white mb-8">${t('settings')}</h1>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <!-- Sidebar -->
+                            <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm h-fit">
+                                <div class="text-center mb-6">
+                                    <img src="${state.user.avatar}" class="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-amber-100 dark:border-slate-700"/>
+                                    <h2 class="font-bold text-xl dark:text-white">${state.user.name}</h2>
+                                    <span class="text-sm text-slate-500 uppercase font-bold">${state.user.type}</span>
+                                </div>
+                                <div class="space-y-2">
+                                    <button class="w-full text-left px-4 py-2 rounded-lg bg-amber-50 dark:bg-slate-700 text-amber-600 font-bold">Profile</button>
+                                    <button class="w-full text-left px-4 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Notifications</button>
+                                    <button class="w-full text-left px-4 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Security</button>
+                                    <button class="w-full text-left px-4 py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">Payments</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="md:col-span-2 space-y-6">
+                                <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-sm">
+                                    <h3 class="font-bold text-xl dark:text-white mb-6 flex items-center">
+                                        <svg class="w-5 h-5 mr-2 text-amber-500"><use xlink:href="#icon-user"></use></svg> Personal Information
+                                    </h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-sm font-bold text-slate-500 mb-1">Full Name</label>
+                                            <input type="text" value="${state.user.name}" class="w-full p-3 rounded-lg border dark:bg-slate-900 dark:border-slate-700 dark:text-white"/>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-bold text-slate-500 mb-1">Email</label>
+                                            <input type="text" value="${state.user.email}" class="w-full p-3 rounded-lg border dark:bg-slate-900 dark:border-slate-700 dark:text-white"/>
+                                        </div>
+                                        <div class="md:col-span-2">
+                                            <label class="block text-sm font-bold text-slate-500 mb-1">Bio</label>
+                                            <textarea class="w-full p-3 rounded-lg border dark:bg-slate-900 dark:border-slate-700 dark:text-white h-24">${state.user.bio}</textarea>
+                                        </div>
+                                    </div>
+                                    <button class="mt-6 bg-amber-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-amber-600">Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function PartnerDashboard() {
+            if (!state.user || state.user.type !== UserType.PARTNER) {
+                return `
+                    <div class="flex flex-col items-center justify-center min-h-screen">
+                        <h2 class="text-2xl font-bold mb-4">Access Denied</h2>
+                        <button onclick="navigate('${ViewState.HOME}')" class="text-amber-500 underline">Return Home</button>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="flex min-h-screen bg-slate-50 dark:bg-slate-900">
+                    <aside class="w-64 bg-slate-950 text-white fixed h-full hidden lg:flex flex-col">
+                        <div class="p-6 font-bold text-2xl tracking-tighter border-b border-slate-800">
+                            PANORA<span class="text-amber-500">.</span> 
+                            <span class="text-xs font-normal text-slate-400 block mt-1">Partner Hub</span>
+                        </div>
+                        <nav class="p-4 space-y-2 flex-1">
+                            <button onclick="state.dashboardTab = 'listings'; render();" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors ${state.dashboardTab === 'listings' ? 'bg-amber-600 font-bold' : 'hover:bg-slate-800'}">
+                                <svg class="w-5 h-5"><use xlink:href="#icon-layout-dashboard"></use></svg>
+                                <span>My Listings</span>
+                            </button>
+                            <button onclick="state.dashboardTab = 'add'; render();" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors ${state.dashboardTab === 'add' ? 'bg-amber-600 font-bold' : 'hover:bg-slate-800'}">
+                                <svg class="w-5 h-5"><use xlink:href="#icon-plus-circle"></use></svg>
+                                <span>Add Property</span>
+                            </button>
+                        </nav>
+                        <div class="p-4 border-t border-slate-800 space-y-2">
+                            <button onclick="navigate('${ViewState.HOME}')" class="w-full flex items-center space-x-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl">
+                                <svg class="w-5 h-5"><use xlink:href="#icon-globe"></use></svg>
+                                <span>Back to Site</span>
+                            </button>
+                            <button onclick="handleLogout()" class="w-full flex items-center space-x-3 px-4 py-3 text-red-400 hover:bg-red-500/10 rounded-xl">
+                                <svg class="w-5 h-5"><use xlink:href="#icon-log-out"></use></svg>
+                                <span>Sign Out</span>
+                            </button>
+                        </div>
+                    </aside>
+                    
+                    <main class="lg:ml-64 flex-1 p-8 overflow-y-auto">
+                        ${state.dashboardTab === 'listings' ? DashboardListings() : DashboardAddProperty()}
+                    </main>
+                </div>
+            `;
+        }
+        
+        function DashboardListings() {
+            return `
+                <div>
+                    <h1 class="text-3xl font-bold dark:text-white mb-8">Manage Listings</h1>
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        ${state.listings.map(listing => `
+                            <div class="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 relative group">
+                                <div class="flex gap-4">
+                                    <img src="${listing.image}" class="w-24 h-24 rounded-lg object-cover"/>
+                                    <div>
+                                        <h3 class="font-bold dark:text-white line-clamp-1">${listing.title}</h3>
+                                        <p class="text-sm text-slate-500">${listing.town}, ${listing.province}</p>
+                                        <span class="text-amber-500 font-bold mt-2 block">$${listing.price}</span>
+                                    </div>
+                                </div>
+                                <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2">
+                                    <button onclick="editListing(${listing.id})" class="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                                        <svg class="w-4 h-4"><use xlink:href="#icon-edit"></use></svg>
+                                    </button>
+                                    <button onclick="deleteListing(${listing.id})" class="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                                        <svg class="w-4 h-4"><use xlink:href="#icon-trash-2"></use></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function DashboardAddProperty() {
+            const editingId = state.editingListingId || null;
+            const listing = editingId ? state.listings.find(l => l.id === editingId) : null;
+            
+            return `
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-3xl font-bold dark:text-white mb-8">${editingId ? 'Edit Property' : 'Add New Property'}</h1>
+                    <form onsubmit="handleListingSubmit(event)" class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm space-y-6">
+                        
+                        <!-- Basic Info -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="label">Property Title</label>
+                                <input required type="text" id="listing-title" class="input" value="${listing ? listing.title : ''}" />
+                            </div>
+                            <div>
+                                <label class="label">Category</label>
+                                <select id="listing-category" class="input">
+                                    <option ${listing && listing.category === 'Resorts' ? 'selected' : ''}>Resorts</option>
+                                    <option ${listing && listing.category === 'Camps' ? 'selected' : ''}>Camps</option>
+                                    <option ${listing && listing.category === 'Lodges' ? 'selected' : ''}>Lodges</option>
+                                    <option ${listing && listing.category === 'Hotels' ? 'selected' : ''}>Hotels</option>
+                                    <option ${listing && listing.category === 'Houseboats' ? 'selected' : ''}>Houseboats</option>
+                                    <option ${listing && listing.category === 'Restaurants' ? 'selected' : ''}>Restaurants</option>
+                                    <option ${listing && listing.category === 'Cabins' ? 'selected' : ''}>Cabins</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label">Price ($)</label>
+                                <input required type="number" id="listing-price" class="input" value="${listing ? listing.price : ''}" />
+                            </div>
+                            <div>
+                                <label class="label">Age Requirement (0 for all)</label>
+                                <input type="number" id="listing-age" class="input" value="${listing ? listing.ageRequirement : 0}" />
+                            </div>
+                        </div>
+                        
+                        <!-- Location -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                            <div>
+                                <label class="label">Province</label>
+                                <select id="listing-province" class="input">
+                                    ${PROVINCES.map(p => `<option ${listing && listing.province === p ? 'selected' : ''}>${p}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="label">Town/Location Name</label>
+                                <input required type="text" id="listing-town" class="input" placeholder="e.g. Victoria Falls" value="${listing ? listing.town : ''}" />
+                            </div>
+                            <div class="col-span-2">
+                                <label class="label">Map Link (Google Maps URL)</label>
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 text-slate-400 mr-2"><use xlink:href="#icon-map"></use></svg>
+                                    <input type="text" id="listing-maplink" class="input" value="${listing ? listing.mapLink : ''}" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div>
+                            <label class="label">Description</label>
+                            <textarea required id="listing-description" class="input h-32" placeholder="Describe the experience...">${listing ? listing.description : ''}</textarea>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="label">Main Image URL</label>
+                                <input required type="text" id="listing-image" class="input" value="${listing ? listing.image : ''}" placeholder="https://..." />
+                            </div>
+                            <div>
+                                <label class="label">Collection Type</label>
+                                <select id="listing-collection" class="input">
+                                    <option value="none" ${listing && listing.collectionType === 'none' ? 'selected' : ''}>None</option>
+                                    <option value="luxury" ${listing && listing.collectionType === 'luxury' ? 'selected' : ''}>Luxury</option>
+                                    <option value="safari" ${listing && listing.collectionType === 'safari' ? 'selected' : ''}>Safari</option>
+                                    <option value="family" ${listing && listing.collectionType === 'family' ? 'selected' : ''}>Family</option>
+                                    <option value="budget" ${listing && listing.collectionType === 'budget' ? 'selected' : ''}>Budget</option>
+                                    <option value="romantic" ${listing && listing.collectionType === 'romantic' ? 'selected' : ''}>Romantic</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="label">Tags (Comma separated)</label>
+                            <input type="text" id="listing-tags" class="input" value="${listing ? listing.tags.join(', ') : ''}" placeholder="e.g. Wifi, Pool, Sunset" />
+                        </div>
+                        
+                        <div>
+                            <label class="label">Amenities (Comma separated)</label>
+                            <input type="text" id="listing-amenities" class="input" value="${listing ? listing.amenities.join(', ') : ''}" placeholder="e.g. Wifi, Pool, Parking" />
+                        </div>
+                        
+                        <div class="flex justify-end pt-6">
+                            <button type="submit" class="bg-amber-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-amber-700 flex items-center gap-2">
+                                <svg class="w-4 h-4"><use xlink:href="#icon-save"></use></svg>
+                                ${editingId ? 'Update Listing' : 'Publish Listing'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+        
+        function ListingCard(listing) {
+            return `
+                <div class="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-800 group cursor-pointer flex flex-col h-full" onclick="navigate('${ViewState.EXPLORE}', { highlight: ${listing.id} })">
+                    <div class="relative h-56 overflow-hidden">
+                        <img src="${listing.image}" alt="${listing.title}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        <div class="absolute top-3 right-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur px-2 py-1 rounded-lg text-xs font-bold flex items-center shadow-sm">
+                            <svg class="w-3 h-3 text-amber-500 mr-1"><use xlink:href="#icon-star"></use></svg>
+                            <span class="dark:text-white">${listing.rating}</span>
+                        </div>
+                        ${listing.tags.length > 0 ? `
+                            <div class="absolute bottom-3 left-3 flex flex-wrap gap-1">
+                                ${listing.tags.slice(0, 3).map(tag => `
+                                    <span class="bg-black/60 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full font-medium">${tag}</span>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                        ${!listing.isOpen ? `
+                            <div class="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <span class="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Closed</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="p-5 flex flex-col flex-1">
+                        <div class="flex items-start justify-between mb-2">
+                            <div>
+                                <span class="text-amber-600 dark:text-amber-500 text-xs font-bold uppercase tracking-wider mb-1 block">${listing.category}</span>
+                                <h3 class="font-bold text-lg dark:text-white leading-tight group-hover:text-amber-500 transition-colors line-clamp-1">${listing.title}</h3>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-slate-500 dark:text-slate-400 text-sm mb-4">
+                            <svg class="w-3 h-3 mr-1"><use xlink:href="#icon-map-pin"></use></svg>
+                            <span class="truncate">${listing.location}, ${listing.province}</span>
+                        </div>
+                        <div class="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                            <div>
+                                <span class="text-lg font-bold dark:text-white">$${listing.price}</span>
+                                <span class="text-slate-400 text-xs ml-1">/ night</span>
+                            </div>
+                            <button class="bg-slate-50 dark:bg-slate-800 hover:bg-amber-500 hover:text-white text-slate-900 dark:text-white rounded-full p-2 transition-colors">
+                                <svg class="w-4 h-4"><use xlink:href="#icon-chevron-right"></use></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function Hosting() {
+            return `
+                <div class="pt-24 px-6 text-center min-h-screen flex flex-col items-center justify-center">
+                    <h1 class="text-4xl font-bold dark:text-white mb-4">Become a Host</h1>
+                    <button class="bg-amber-500 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-amber-600">Start Hosting</button>
+                </div>
+            `;
+        }
+        
+        function Blog() {
+            return `
+                <div class="pt-24 px-6 text-center min-h-screen">
+                    <h1 class="text-4xl font-bold dark:text-white mb-4">Travel Blog</h1>
+                    <p class="text-slate-500">Stories from the road coming soon.</p>
+                </div>
+            `;
+        }
+        
+        function Reviews() {
+            return `
+                <div class="pt-24 px-6 text-center min-h-screen">
+                    <h1 class="text-4xl font-bold dark:text-white mb-4">User Reviews</h1>
+                    <p class="text-slate-500">See what others are saying.</p>
+                </div>
+            `;
+        }
+        
+        function LegalPage() {
+            const title = state.view.charAt(0).toUpperCase() + state.view.slice(1);
+            return `
+                <div class="pt-24 px-6 text-center min-h-screen">
+                    <h1 class="text-4xl font-bold dark:text-white mb-4">${title}</h1>
+                    <p class="text-slate-500">Legal content for ${title} goes here.</p>
+                </div>
+            `;
+        }
+        
+        function Footer() {
+            return `
+                <footer class="bg-slate-950 text-white py-16 border-t border-slate-900">
+                    <div class="max-w-7xl mx-auto px-6">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+                            <div>
+                                <div class="font-bold text-2xl mb-6">PANORA<span class="text-amber-500">.</span></div>
+                                <p class="text-slate-400 text-sm leading-relaxed">${t('footerDesc')}</p>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-6">${t('company')}</h4>
+                                <ul class="space-y-3 text-slate-400 text-sm">
+                                    <li><button onclick="navigate('${ViewState.ABOUT}')" class="hover:text-amber-500">${t('about')}</button></li>
+                                    <li><button onclick="navigate('${ViewState.CAREERS}')" class="hover:text-amber-500">Careers</button></li>
+                                    <li><button onclick="navigate('${ViewState.BLOG}')" class="hover:text-amber-500">${t('blog')}</button></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-6">${t('support')}</h4>
+                                <ul class="space-y-3 text-slate-400 text-sm">
+                                    <li><a href="mailto:${ADMIN_EMAIL}" class="hover:text-amber-500">Contact Support</a></li>
+                                    <li><button onclick="navigate('${ViewState.SAFETY}')" class="hover:text-amber-500">Safety Information</button></li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-lg mb-6">${t('newsletter')}</h4>
+                                <div class="flex">
+                                    <input type="email" placeholder="Email" class="bg-slate-900 border border-slate-800 text-white px-4 py-2 rounded-l-lg outline-none w-full" />
+                                    <button class="bg-amber-500 px-4 py-2 rounded-r-lg font-bold hover:bg-amber-600">${t('subscribe')}</button>
+                                </div>
+                                <div class="flex space-x-4 mt-6">
+                                    <svg class="w-5 h-5 text-slate-400 hover:text-white cursor-pointer"><use xlink:href="#icon-facebook"></use></svg>
+                                    <svg class="w-5 h-5 text-slate-400 hover:text-white cursor-pointer"><use xlink:href="#icon-instagram"></use></svg>
+                                    <svg class="w-5 h-5 text-slate-400 hover:text-white cursor-pointer"><use xlink:href="#icon-twitter"></use></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-slate-500">
+                            <p>© 2025 Panora Travels.</p>
+                            <div class="flex space-x-6 mt-4 md:mt-0">
+                                <button onclick="navigate('${ViewState.PRIVACY}')" class="hover:text-white">${t('privacy')}</button>
+                                <button onclick="navigate('${ViewState.TERMS}')" class="hover:text-white">${t('terms')}</button>
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            `;
+        }
+        
+        // --- EVENT HANDLERS ---
+        
+        function attachEventListeners() {
+            // Handle scroll for navbar
+            window.addEventListener('scroll', () => {
+                state.scrolled = window.scrollY > 50;
+                const navbar = document.getElementById('navbar');
+                if (navbar) {
+                    if (state.scrolled) {
+                        navbar.classList.add('bg-white/95', 'dark:bg-slate-900/95', 'backdrop-blur-md', 'shadow-lg', 'py-3', 'text-slate-900', 'dark:text-white');
+                        navbar.classList.remove('bg-transparent', 'py-5', 'text-white');
+                    } else {
+                        navbar.classList.remove('bg-white/95', 'dark:bg-slate-900/95', 'backdrop-blur-md', 'shadow-lg', 'py-3', 'text-slate-900', 'dark:text-white');
+                        navbar.classList.add('bg-transparent', 'py-5', 'text-white');
+                    }
+                }
+            });
+            
+            // Set today's date for checkin/checkout inputs
+            const today = new Date().toISOString().split('T')[0];
+            const checkinInput = document.getElementById('search-checkin');
+            const checkoutInput = document.getElementById('search-checkout');
+            if (checkinInput) checkinInput.min = today;
+            if (checkoutInput) {
+                checkoutInput.min = today;
+                if (checkinInput) {
+                    checkinInput.addEventListener('change', () => {
+                        checkoutInput.min = checkinInput.value || today;
+                    });
+                }
+            }
+            
+            // Price filter updates
+            const priceFilter = document.getElementById('price-filter');
+            const priceValue = document.getElementById('price-value');
+            if (priceFilter && priceValue) {
+                priceFilter.addEventListener('input', () => {
+                    priceValue.textContent = priceFilter.value;
+                    filterListings();
+                });
+            }
+            
+            // Other filter updates
+            const provinceFilter = document.getElementById('province-filter');
+            if (provinceFilter) {
+                provinceFilter.addEventListener('change', filterListings);
+            }
+            
+            const typeFilters = document.querySelectorAll('input[name="type-filter"]');
+            typeFilters.forEach(filter => {
+                filter.addEventListener('change', filterListings);
+            });
+        }
+        
+        function handleSearch() {
+            const location = document.getElementById('search-location')?.value || '';
+            navigate(ViewState.EXPLORE, { location });
+        }
+        
+        function filterListings() {
+            const priceMax = document.getElementById('price-filter')?.value || 1000;
+            const province = document.getElementById('province-filter')?.value || 'All';
+            const typeFilter = document.querySelector('input[name="type-filter"]:checked')?.value || 'All';
+            
+            const filtered = state.listings.filter(listing => {
+                if (province !== 'All' && listing.province !== province) return false;
+                if (typeFilter !== 'All' && listing.type !== typeFilter) return false;
+                if (listing.price > parseInt(priceMax)) return false;
+                return true;
+            });
+            
+            const resultsContainer = document.getElementById('explore-results');
+            const resultCount = document.getElementById('result-count');
+            
+            if (resultsContainer) {
+                resultsContainer.innerHTML = filtered.map(listing => ListingCard(listing)).join('');
+            }
+            
+            if (resultCount) {
+                resultCount.textContent = filtered.length;
+            }
+        }
+        
+        function clearFilters() {
+            const priceFilter = document.getElementById('price-filter');
+            const provinceFilter = document.getElementById('province-filter');
+            const typeFilters = document.querySelectorAll('input[name="type-filter"]');
+            const openNowToggle = document.getElementById('filter-open-now');
+            
+            if (priceFilter) priceFilter.value = 1000;
+            if (provinceFilter) provinceFilter.value = 'All';
+            if (typeFilters.length > 0) {
+                typeFilters[0].checked = true;
+            }
+            if (openNowToggle) {
+                openNowToggle.classList.remove('bg-green-500');
+                openNowToggle.classList.add('bg-slate-300', 'dark:bg-slate-700');
+                openNowToggle.querySelector('div').classList.remove('translate-x-6');
+                openNowToggle.querySelector('div').classList.add('translate-x-0');
+            }
+            
+            filterListings();
+        }
+        
+        function toggleFilter(filterName) {
+            const toggle = document.getElementById(`filter-${filterName}`);
+            if (toggle) {
+                if (toggle.classList.contains('bg-green-500')) {
+                    toggle.classList.remove('bg-green-500');
+                    toggle.classList.add('bg-slate-300', 'dark:bg-slate-700');
+                    toggle.querySelector('div').classList.remove('translate-x-6');
+                    toggle.querySelector('div').classList.add('translate-x-0');
+                } else {
+                    toggle.classList.remove('bg-slate-300', 'dark:bg-slate-700');
+                    toggle.classList.add('bg-green-500');
+                    toggle.querySelector('div').classList.remove('translate-x-0');
+                    toggle.querySelector('div').classList.add('translate-x-6');
+                }
+            }
+        }
+        
+        function editListing(id) {
+            state.editingListingId = id;
+            state.dashboardTab = 'add';
+            render();
+        }
+        
+        function handleListingSubmit(event) {
+            event.preventDefault();
+            
+            const id = state.editingListingId || Date.now();
+            const listing = {
+                id,
+                title: document.getElementById('listing-title').value,
+                province: document.getElementById('listing-province').value,
+                town: document.getElementById('listing-town').value,
+                location: document.getElementById('listing-town').value || document.getElementById('listing-province').value,
+                price: parseInt(document.getElementById('listing-price').value),
+                rating: state.editingListingId ? (state.listings.find(l => l.id === state.editingListingId)?.rating || 5) : 5,
+                image: document.getElementById('listing-image').value || "https://images.unsplash.com/photo-1566073771259-6a8506099945",
+                gallery: [],
+                category: document.getElementById('listing-category').value,
+                type: 'stay',
+                amenities: document.getElementById('listing-amenities').value.split(',').map(s => s.trim()),
+                isOpen: true,
+                description: document.getElementById('listing-description').value,
+                reviews: state.editingListingId ? (state.listings.find(l => l.id === state.editingListingId)?.reviews || 0) : 0,
+                tags: document.getElementById('listing-tags').value.split(',').map(s => s.trim()),
+                mapLink: document.getElementById('listing-maplink').value,
+                ageRequirement: parseInt(document.getElementById('listing-age').value) || 0,
+                collectionType: document.getElementById('listing-collection').value
+            };
+            
+            if (state.editingListingId) {
+                updateListing(listing);
+                alert("Listing Updated!");
+            } else {
+                addListing(listing);
+                alert("New Property Published!");
+            }
+            
+            state.editingListingId = null;
+            state.dashboardTab = 'listings';
+            render();
+        }
+        
+        // AI Planner Functions
+        function toggleInterest(button, interest) {
+            if (button.classList.contains('bg-indigo-600')) {
+                button.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'scale-105');
+                button.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-400');
+            } else {
+                button.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-400');
+                button.classList.add('bg-indigo-600', 'text-white', 'shadow-lg', 'scale-105');
+            }
+        }
+        
+        async function generateItinerary() {
+            const destination = document.getElementById('ai-destination')?.value || 'Zimbabwe';
+            const days = document.getElementById('ai-days')?.value || 5;
+            const budget = document.getElementById('ai-budget')?.value || 'Medium';
+            const interestButtons = document.querySelectorAll('#ai-interests button.bg-indigo-600');
+            const interests = Array.from(interestButtons).map(btn => btn.textContent.trim());
+            
+            // Show loading state
+            const generateBtn = document.querySelector('button[onclick="generateItinerary()"]');
+            if (generateBtn) {
+                generateBtn.innerHTML = '<svg class="w-5 h-5 animate-spin"><use xlink:href="#icon-loader-2"></use></svg><span>Designing your trip...</span>';
+                generateBtn.disabled = true;
+            }
+            
+            // Simulate API call (in real app, you would call Gemini API here)
+            setTimeout(() => {
+                const result = `**Day 1: Arrival in ${destination}** ✈️\n• Arrive at the airport and transfer to your accommodation\n• Relax and acclimate to the local timezone\n• Evening welcome dinner with local cuisine\n\n**Day 2: Explore the Highlights** 🌄\n• Morning guided tour of the main attractions\n• Visit local markets and cultural sites\n• Optional afternoon activity based on your interests\n\n**Day 3: Adventure Day** 🚤\n• Full-day excursion based on your selected interests\n• Professional guides and all equipment provided\n• Return to accommodation for evening relaxation\n\n**Day 4: Cultural Immersion** 🎭\n• Visit local communities and traditional workshops\n• Cooking class or craft workshop\n• Evening cultural performance\n\n**Day 5: Departure** 🛫\n• Final breakfast and souvenir shopping\n• Transfer to airport for departure`;
+                
+                document.getElementById('ai-result-content').innerHTML = result;
+                document.getElementById('ai-result').classList.remove('hidden');
+                
+                if (generateBtn) {
+                    generateBtn.innerHTML = '<svg class="w-5 h-5"><use xlink:href="#icon-sparkles"></use></svg><span>Generate Itinerary</span>';
+                    generateBtn.disabled = false;
+                }
+            }, 1500);
+        }
+        
+        function resetAIPlanner() {
+            document.getElementById('ai-destination').value = 'Zimbabwe';
+            document.getElementById('ai-days').value = 5;
+            document.getElementById('ai-budget').value = 'Medium';
+            document.querySelectorAll('#ai-interests button').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-lg', 'scale-105');
+                btn.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-400');
+            });
+            document.getElementById('ai-result').classList.add('hidden');
+        }
+        
+        // --- INITIALIZATION ---
+        function init() {
+            // Load saved theme and language
+            const savedTheme = localStorage.getItem('panora-theme');
+            const savedLang = localStorage.getItem('panora-lang');
+            
+            if (savedTheme) state.theme = savedTheme;
+            if (savedLang) state.lang = savedLang;
+            
+            // Set initial state
+            state.authMode = 'traveler';
+            state.dashboardTab = 'listings';
+            state.editingListingId = null;
+            
+            // Apply theme
+            document.documentElement.classList.toggle('dark', state.theme === Theme.DARK);
+            
+            // Initial render
+            render();
+        }
+        
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
 </body>
 </html>

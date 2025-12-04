@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PANORA — single-file</title>
+
+  <!-- Tailwind via CDN (keeps original classes) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React + ReactDOM UMD -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel for in-browser JSX transpile (development only; remove for production and build instead) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    /* small custom scrollbar + minor visuals */
+    .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 999px; }
+    .fade-in { animation: fadein .18s ease-in-out; }
+    @keyframes fadein { from { opacity: 0 } to { opacity: 1 } }
+
+    /* small utility to mimic framer-motion subtle pop */
+    .pop-enter { transform: translateY(12px); opacity: 0; transition: all 220ms ease; }
+    .pop-enter.pop-enter-active { transform: translateY(0); opacity: 1; }
+
+    /* truncated line clamp fallback for non-tailwind-pro */
+    .line-clamp-1 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  </style>
+</head>
+<body class="antialiased bg-[#FAFAF9] dark:bg-slate-950 transition-colors">
+
+<div id="root"></div>
+
+<!-- App code (JSX) -->
+<script type="text/babel">
+
+// -------------------------------
+// CONFIG & DATA (from your file)
+// -------------------------------
+const API_KEY = ""; // put real Gemini key here if you want Gemini integration
+const ADMIN_EMAIL = "victormakwarimba.t@gmail.com";
+
+// initial listings copied from your upload (trimmed to keep file size reasonable)
+// Full dataset preserved where possible — you can expand this.
+const INITIAL_LISTINGS = [
+  { id:1, title:"The Residency at Leopard Rock", province:"Manicaland", town:"Vumba", location:"Vumba Mountains", price:180, rating:4.92, reviews:128, image:"https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=1000", category:"Resorts", type:"stay", collectionType:"luxury", amenities:["Wifi","Pool","Spa","Golf Course"], isOpen:true, tags:["Luxury","Mountain View","Golf"], ageRequirement:0, description:"Experience world-class luxury in the mist of the Vumba Mountains." },
+  { id:2, title:"Zambezi River Eco-Lodge", province:"Matabeleland North", town:"Victoria Falls", location:"Victoria Falls", price:320, rating:4.98, reviews:84, image:"https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&q=80&w=1000", category:"Camps", type:"stay", collectionType:"safari", amenities:["Wifi","Safari","River View"], isOpen:true, tags:["Eco-Friendly","Wildlife","Big 5"], ageRequirement:12, description:"An eco-conscious lodge on the banks of the mighty Zambezi." },
+  { id:3, title:"Amanzi Restaurant Deck", province:"Harare", town:"Highlands", location:"Harare", price:45, rating:4.85, reviews:340, image:"https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1000", category:"Restaurants", type:"culinary", collectionType:"none", amenities:["Bar","Live Music","Garden"], isOpen:true, tags:["Fine Dining","Nightlife"], ageRequirement:18, description:"Award-winning dining experience in Harare." },
+  { id:4, title:"Granite Stone Camp", province:"Matabeleland South", town:"Matopos", location:"Matobo Hills", price:150, rating:4.95, reviews:42, image:"https://images.unsplash.com/photo-1510798831971-661eb04b3739?auto=format&fit=crop&q=80&w=1000", category:"Camps", type:"camping", collectionType:"adventure", amenities:["Hiking","Fireplace","Guided Walks"], isOpen:false, tags:["Adventure","History"], ageRequirement:0, description:"Nestled among the balancing rocks of Matopos." },
+  { id:5, title:"Kariba Houseboat Luxury", province:"Mashonaland West", town:"Kariba", location:"Lake Kariba", price:400, rating:4.90, reviews:56, image:"https://images.unsplash.com/photo-1544551763-46a8e3d69958?auto=format&fit=crop&q=80&w=1000", category:"Houseboats", type:"cruise", collectionType:"family", amenities:["Chef","Fishing","Jacuzzi"], isOpen:true, tags:["Water","Safari","Fishing"], ageRequirement:0, description:"Cruise Lake Kariba in style." },
+  { id:6, title:"Nyanga Pine Cabin", province:"Manicaland", town:"Nyanga", location:"Nyanga", price:95, rating:4.75, reviews:210, image:"https://images.unsplash.com/photo-1449156493391-d2cfa28e468b?auto=format&fit=crop&q=80&w=1000", category:"Cabins", type:"stay", collectionType:"romantic", amenities:["Fireplace","Self-Catering"], isOpen:true, tags:["Cozy","Forest"], ageRequirement:0, description:"A cozy pine cabin in the Eastern Highlands." }
+];
+
+const PROVINCES = ["Harare","Bulawayo","Manicaland","Mashonaland Central","Mashonaland East","Mashonaland West","Masvingo","Matabeleland North","Matabeleland South","Midlands"];
+
+// -------------------------------
+// Tiny Icon components (inline SVG to replace lucide-react imports)
+// -------------------------------
+const Icon = ({ children, className='' }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">{children}</svg>;
+const SearchIcon = (props) => <Icon {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z" /></Icon>;
+const MapPinIcon = (props) => <Icon {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 11a3 3 0 100-6 3 3 0 000 6zM12 21s8-5.5 8-11a8 8 0 10-16 0c0 5.5 8 11 8 11z" /></Icon>;
+const SparklesIcon = (props) => <Icon {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3l1.5 3L10 7 7 9 5 12 3 9 0 7 3.5 6 5 3zm14 4l.75 1.5L21 11l-1.25-2L17 8l2-1zM14 17l.5 1L16 20l-2-1-1.5 1-1-2 1-1.5L14 17z" /></Icon>;
+const StarIcon = (props) => <Icon {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.96a1 1 0 00.95.69h4.175c.969 0 1.371 1.24.588 1.81l-3.38 2.46a1 1 0 00-.364 1.118l1.287 3.96c.3.921-.755 1.688-1.54 1.118l-3.38-2.46a1 1 0 00-1.175 0l-3.38 2.46c-.784.57-1.84-.197-1.54-1.118l1.287-3.96a1 1 0 00-.364-1.118L2.05 9.387c-.783-.57-.381-1.81.588-1.81h4.175a1 1 0 00.95-.69l1.286-3.96z" /></Icon>;
+const ChevronRightIcon = (props) => <Icon {...props}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></Icon>;
+
+// -------------------------------
+// Simple Gemini stub (uses API_KEY if set, otherwise returns fake itinerary)
+// -------------------------------
+async function generateGeminiContent(prompt) {
+  if (!API_KEY) {
+    // simulate output (keeps bold markers `**Day X**` used by original UI)
+    return `**Day 1** — Arrival in ${prompt.includes('Zimbabwe') ? 'Zimbabwe' : 'your destination'}\n- Relax and explore nearby sights.\n\n**Day 2** — Adventure Day\n- Safari or local tour.\n\n**Day 3** — Culture & Food\n- Sample local cuisine and markets.\n\nHave a great trip! ✨`;
+  }
+  // if user populates API_KEY, they can replace this with real fetch to Gemini endpoint
+  try {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5:generateContent?key=${API_KEY}`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+    });
+    const data = await resp.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text || "Couldn't generate at this time.";
+  } catch(e){ console.error(e); return "Error contacting AI service."; }
+}
+
+// -------------------------------
+// Small helper to mirror original translation helper
+// -------------------------------
+const TRANSLATIONS = { en: { about:"About Us", collections:"Collections", explore:"Explore", search:"Search", whereTo:"Where to?", searchDestinations:"Search destinations", checkIn:"Check In", checkOut:"Check Out", guests:"Guests", signIn:"Sign In", aiPlanner:"AI Planner", settings:"Settings", dashboard:"Dashboard", filter:"Filters", clear:"Clear", openNow:"Open Now", priceRange:"Price Range", province:"Province", activityType:"Activity Type", clearFilters:"Clear Filters", viewAll:"View All", unforgettable:"Unforgettable Stays", stayBetter:"Stay Better. Explore Deeper.", experienceZim:"Experience Zimbabwe.", footerDesc:"Connecting travelers with the best Zimbabwean experiences.", company:"Company", support:"Support", newsletter:"Newsletter", subscribe:"Subscribe", aboutText:"Panora was born from a love for the untold stories of Zimbabwe." } };
+function t(key) { return TRANSLATIONS.en[key] || key }
+
+// -------------------------------
+// Local-storage-backed listings service (so dashboard CRUD persists)
+// Replace these with network calls to your API to connect to a real DB.
+// -------------------------------
+function loadListings() {
+  const raw = localStorage.getItem('panora_listings_v1');
+  if (raw) try { return JSON.parse(raw); } catch(e){ localStorage.removeItem('panora_listings_v1'); }
+  localStorage.setItem('panora_listings_v1', JSON.stringify(INITIAL_LISTINGS));
+  return INITIAL_LISTINGS.slice();
+}
+function saveListings(listings) {
+  localStorage.setItem('panora_listings_v1', JSON.stringify(listings));
+}
+
+// -------------------------------
+// Simple UI: Navbar, Home, Explore, Collections, ListingCard, PartnerDashboard, AI Planner modal, Auth modal
+// (This is a compact but functional recreation of your React app.)
+// -------------------------------
+const { useState, useEffect, useRef, useMemo } = React;
+
+function App() {
+  const [view, setView] = useState('home');
+  const [theme, setTheme] = useState('light');
+  const [lang, setLang] = useState('en');
+  const [authOpen, setAuthOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [listings, setListings] = useState(loadListings());
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
+  useEffect(() => { saveListings(listings); }, [listings]);
+
+  const navigate = (v, params) => { window.scrollTo({top:0,behavior:'smooth'}); if(v==='dashboard' && (!user || user.type!=='partner')) { alert('Partner login required'); setView('home'); return; } setView(v); };
+
+  // CRUD hooks for dashboard
+  const addListing = (l) => { setListings(prev => [l, ...prev]); };
+  const updateListing = (updated) => { setListings(prev => prev.map(p=>p.id===updated.id?updated:p)); };
+  const deleteListing = (id) => { if(confirm('Delete listing?')) setListings(prev => prev.filter(p=>p.id!==id)); };
+
+  const handleLogin = (type) => {
+    const u = { name: type==='partner' ? "Victor Makwarimba" : "Traveler Guest", email:"victor@example.com", type };
+    setUser(u);
+    setAuthOpen(false);
+    if (type === 'partner') setView('dashboard');
+  };
+  const handleLogout = () => { setUser(null); setView('home'); };
+
+  return (
+    <div className={`min-h-screen font-sans transition-colors duration-300 ${theme==='dark' ? 'bg-slate-950 text-white' : 'bg-[#FAFAF9] text-slate-900'}`}>
+      {view !== 'dashboard' && <Navbar navigate={navigate} theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} user={user} onOpenAuth={()=>setAuthOpen(true)} onOpenAi={()=>setAiOpen(true)} onLogout={handleLogout} />}
+      <main>
+        {view === 'home' && <Home listings={listings} navigate={navigate} onOpenAi={() => setAiOpen(true)} />}
+        {view === 'explore' && <Explore listings={listings} navigate={navigate} />}
+        {view === 'collections' && <Collections navigate={navigate} />}
+        {view === 'dashboard' && <PartnerDashboard listings={listings} addListing={addListing} updateListing={updateListing} deleteListing={deleteListing} user={user} onLogout={handleLogout} />}
+        {view === 'about' && <AboutUs />}
+      </main>
+
+      <Footer navigate={navigate} />
+
+      {authOpen && <AuthModal onClose={()=>setAuthOpen(false)} onLogin={handleLogin} />}
+      {aiOpen && <AIPlannerModal onClose={()=>setAiOpen(false)} />}
+    </div>
+  );
+}
+
+// ---------- Navbar ----------
+function Navbar({ navigate, theme, setTheme, lang, setLang, user, onOpenAuth, onOpenAi, onLogout }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  useEffect(() => {
+    const onScroll = () => {};
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+  return (
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-lg py-3 text-slate-900 dark:text-white`}>
+      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center relative">
+        <div className="font-bold text-2xl tracking-tighter cursor-pointer" onClick={()=>navigate('home')}>PANORA<span className="text-amber-500">.</span></div>
+
+        <div className="hidden lg:flex space-x-8 items-center">
+          <button onClick={()=>navigate('about')} className="hover:text-amber-500 transition-colors">{t('about')}</button>
+          <button onClick={()=>navigate('collections')} className="hover:text-amber-500 transition-colors">{t('collections')}</button>
+          <button onClick={()=>navigate('explore')} className="hover:text-amber-500 transition-colors">{t('explore')}</button>
+          <button onClick={onOpenAi} className="flex items-center space-x-2 text-amber-500 font-bold animate-pulse">
+            <SparklesIcon className="text-amber-300" /> <span>{t('aiPlanner')}</span>
+          </button>
+        </div>
+
+        <div className="hidden lg:flex items-center space-x-4">
+          <button onClick={()=>setTheme(theme==='light'?'dark':'light')} className="p-2 rounded-full">{theme==='light' ? '🌙' : '☀️'}</button>
+          {user ? (
+            <div className="flex items-center space-x-3 bg-slate-100 dark:bg-slate-800 rounded-full pl-2 pr-4 py-1 cursor-pointer hover:bg-slate-200" onClick={()=>navigate(user.type==='partner'?'dashboard':'settings')}>
+              <img src={user.avatar||'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} alt="avatar" className="w-8 h-8 rounded-full" />
+              <span className="text-xs font-bold max-w-[80px] truncate">{user.name}</span>
+            </div>
+          ) : (
+            <button onClick={onOpenAuth} className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-full font-semibold">Sign In</button>
+          )}
+        </div>
+
+        <div className="lg:hidden flex items-center space-x-4">
+          <button onClick={()=>setTheme(theme==='light'?'dark':'light')} className="p-2 rounded-full">{theme==='light'?'🌙':'☀️'}</button>
+          <button onClick={()=>setMobileOpen(!mobileOpen)} className="p-2">{mobileOpen ? '✖️' : '☰'}</button>
+        </div>
+      </div>
+
+      {mobileOpen && (
+        <div className="lg:hidden bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shadow-2xl p-6">
+          <div className="flex flex-col space-y-4">
+            <button onClick={()=>{navigate('explore'); setMobileOpen(false);}} className="text-left">{t('explore')}</button>
+            <button onClick={()=>{navigate('collections'); setMobileOpen(false);}} className="text-left">{t('collections')}</button>
+            <button onClick={()=>{onOpenAi(); setMobileOpen(false);}} className="text-left text-amber-500 font-bold">{t('aiPlanner')}</button>
+            {user ? <div className="pt-4 flex items-center justify-between"><div className="flex items-center space-x-2"><img src={user.avatar||''} className="w-10 h-10 rounded-full"/><span className="font-bold">{user.name}</span></div><button onClick={onLogout} className="text-red-500">Sign Out</button></div> : (<button onClick={()=>{onOpenAuth(); setMobileOpen(false);}} className="w-full bg-amber-500 text-white py-3 rounded-xl">Sign In</button>)}
+          </div>
+        </div>
+      )}
+    </nav>
+  );
+}
+
+// ---------- Home ----------
+function Home({ listings, navigate, onOpenAi }) {
+  return (
+    <main>
+      <div className="relative h-[80vh] w-full overflow-hidden bg-slate-900">
+        <video autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover opacity-60">
+          <source src="https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-victoria-falls-4266-large.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-slate-950" />
+        <div className="relative z-10 h-full flex flex-col justify-center items-center px-4 text-center pt-20">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-6 max-w-5xl">{t('stayBetter')} <br /><span className="text-amber-400">{t('experienceZim')}</span></h1>
+          <div className="w-full max-w-5xl mb-6"><SearchBar onSearch={(p)=>navigate('explore', p)} listings={listings} /></div>
+
+          <button onClick={onOpenAi} className="flex items-center space-x-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition-transform">
+            <SparklesIcon className="text-amber-300" /> <span>Plan My Trip with AI</span>
+          </button>
+        </div>
+      </div>
+
+      <section className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex justify-between items-end mb-8"><div><h2 className="text-3xl font-bold mb-2">{t('unforgettable')}</h2><p className="text-slate-500">From hidden gems to iconic destinations.</p></div><button onClick={()=>navigate('explore')} className="flex items-center space-x-1 font-semibold text-slate-900 hover:text-amber-600"><span>{t('viewAll')}</span><ChevronRightIcon /></button></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {listings.slice(0,6).map(l => <ListingCard key={l.id} data={l} />)}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+// ---------- SearchBar ----------
+function SearchBar({ onSearch, listings }) {
+  const [location, setLocation] = useState('');
+  const [checkIn, setCheckIn] = useState('');
+  const [checkOut, setCheckOut] = useState('');
+  const [guests, setGuests] = useState({adults:1,children:0});
+  const today = new Date().toISOString().split('T')[0];
+
+  const suggestions = useMemo(() => {
+    if (!location) return [];
+    const all = new Set([...PROVINCES, ...listings.map(l=>l.location), ...listings.map(l=>l.town)]);
+    return Array.from(all).filter(x => x.toLowerCase().includes(location.toLowerCase())).slice(0,5);
+  }, [location, listings]);
+
+  return (
+    <div className="relative w-full">
+      <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-2 shadow-xl flex flex-col md:flex-row items-center border border-slate-100 dark:border-slate-700">
+        <div className="flex-1 px-6 py-3 w-full relative">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide">Where to?</label>
+          <div className="flex items-center"><MapPinIcon className="text-slate-400 mr-2" /><input value={location} onChange={e=>setLocation(e.target.value)} className="w-full bg-transparent outline-none font-bold text-slate-800 dark:text-white placeholder-slate-300" placeholder="Search destinations" /></div>
+          {suggestions.length>0 && (<div className="absolute top-full left-0 w-full mt-4 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border overflow-hidden z-50">{suggestions.map(s=> <button key={s} onClick={()=>{setLocation(s)}} className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-2"><MapPinIcon className="text-amber-500" />{s}</button>)}</div>)}
+        </div>
+
+        <div className="w-full md:w-auto px-6 py-3 border-l border-slate-100 dark:border-slate-700">
+          <label className="block text-xs font-bold text-slate-500 uppercase">Check In</label>
+          <input type="date" min={today} value={checkIn} onChange={e=>setCheckIn(e.target.value)} className="bg-transparent font-bold text-sm outline-none w-full" />
+        </div>
+
+        <div className="w-full md:w-auto px-6 py-3 border-l border-slate-100 dark:border-slate-700">
+          <label className="block text-xs font-bold text-slate-500 uppercase">Check Out</label>
+          <input type="date" min={checkIn||today} value={checkOut} onChange={e=>setCheckOut(e.target.value)} className="bg-transparent font-bold text-sm outline-none w-full" />
+        </div>
+
+        <div className="w-full md:w-auto px-6 py-3 border-l border-slate-100 dark:border-slate-700">
+          <label className="block text-xs font-bold text-slate-500 uppercase">Guests</label>
+          <div className="flex items-center justify-between">
+            <div className="font-bold">{guests.adults + guests.children} Guest{guests.adults+guests.children!==1?'s':''}</div>
+            <div className="flex items-center space-x-2">
+              <button className="p-1 rounded-full border" onClick={()=>setGuests(p=>({...p,adults:Math.max(1,p.adults-1)}))}>-</button>
+              <div className="w-6 text-center">{guests.adults}</div>
+              <button className="p-1 rounded-full border" onClick={()=>setGuests(p=>({...p,adults:Math.min(10,p.adults+1)}))}>+</button>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-2 w-full md:w-auto"><button onClick={()=>onSearch({location,checkIn,checkOut,guests})} className="w-full md:w-auto bg-amber-500 hover:bg-amber-600 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-105 flex justify-center items-center"><SearchIcon /></button></div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- ListingCard ----------
+function ListingCard({ data }) {
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-slate-800 group cursor-pointer">
+      <div className="relative h-56 overflow-hidden">
+        <img src={data.image} alt={data.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+        <div className="absolute top-3 right-3 bg-white/95 dark:bg-slate-900/95 px-2 py-1 rounded-lg text-xs font-bold flex items-center shadow-sm"><StarIcon className="text-amber-500 mr-1"/> <span className="dark:text-white">{data.rating}</span></div>
+        <div className="absolute bottom-3 left-3 flex gap-1">{data.tags.slice(0,3).map((tag,i)=><span key={i} className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full">{tag}</span>)}</div>
+        {!data.isOpen && (<div className="absolute inset-0 bg-black/50 flex items-center justify-center"><span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Closed</span></div>)}
+      </div>
+      <div className="p-5 flex flex-col">
+        <div className="flex items-start justify-between mb-2"><div><span className="text-amber-600 text-xs font-bold uppercase tracking-wider mb-1 block">{data.category}</span><h3 className="font-bold text-lg dark:text-white leading-tight line-clamp-1">{data.title}</h3></div></div>
+        <div className="flex items-center text-slate-500 dark:text-slate-400 text-sm mb-4"><MapPinIcon className="mr-1" />{data.location}, {data.province}</div>
+        <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center"><div><span className="text-lg font-bold dark:text-white">${data.price}</span><span className="text-slate-400 text-xs ml-1">/ night</span></div><button className="bg-slate-50 dark:bg-slate-800 hover:bg-amber-500 hover:text-white text-slate-900 dark:text-white rounded-full p-2 transition-colors"><ChevronRightIcon /></button></div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Explore ----------
+function Explore({ listings }) {
+  const [filters, setFilters] = useState({ priceMax:1000, isOpen:false, province:'All', type:'All', searchQuery:'' });
+
+  const filtered = listings.filter(l => {
+    const q = filters.searchQuery.toLowerCase();
+    if (q && !l.location.toLowerCase().includes(q) && !l.province.toLowerCase().includes(q) && !l.town.toLowerCase().includes(q)) return false;
+    if (filters.province !== 'All' && l.province !== filters.province) return false;
+    if (filters.type !== 'All' && l.type !== filters.type) return false;
+    if (filters.isOpen && !l.isOpen) return false;
+    if (l.price > filters.priceMax) return false;
+    return true;
+  });
+
+  return (
+    <div className="pt-24 pb-20 max-w-7xl mx-auto px-6 min-h-screen flex flex-col gap-8">
+      <div className="w-full max-w-4xl mx-auto mb-8"><SearchBar onSearch={(p)=>setFilters(prev=>({...prev,searchQuery:p.location}))} listings={listings} /></div>
+
+      <div className="flex flex-col md:flex-row gap-8">
+        <aside className="w-full md:w-64 bg-white dark:bg-slate-900 p-6 rounded-xl border shadow-sm">
+          <div className="flex justify-between items-center mb-6"><h3 className="font-bold text-lg">{t('filter')}</h3><button onClick={()=>setFilters({priceMax:1000,isOpen:false,province:'All',type:'All',searchQuery:''})} className="text-xs text-amber-500 font-bold">{t('clear')}</button></div>
+
+          <div className="mb-6"><label className="flex items-center justify-between cursor-pointer"><span>Open Now</span><input type="checkbox" checked={filters.isOpen} onChange={()=>setFilters(f=>({...f,isOpen:!f.isOpen}))} /></label></div>
+
+          <div className="mb-6">
+            <label className="block text-sm mb-2">Price (Max: ${filters.priceMax})</label>
+            <input type="range" min="0" max="1000" value={filters.priceMax} onChange={(e)=>setFilters(f=>({...f,priceMax:parseInt(e.target.value)}))} className="w-full" />
+            <div className="flex justify-between text-xs text-slate-500 mt-1"><span>$0</span><span>$1000+</span></div>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm mb-2">Province</label>
+            <select value={filters.province} onChange={(e)=>setFilters(f=>({...f,province:e.target.value}))} className="w-full p-2 rounded-lg border">
+              <option value="All">All Provinces</option>
+              {PROVINCES.map(p=> <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm mb-2">Type</label>
+            <select value={filters.type} onChange={(e)=>setFilters(f=>({...f,type:e.target.value}))} className="w-full p-2 rounded-lg border">
+              <option>All</option><option>stay</option><option>activity</option><option>culinary</option><option>camping</option><option>cruise</option>
+            </select>
+          </div>
+        </aside>
+
+        <div className="flex-1">
+          <div className="flex justify-between items-end mb-6">
+            <div>
+              <h1 className="text-3xl font-bold">Explore Zimbabwe</h1>
+              <p className="text-slate-500 text-sm mt-1">{filtered.length} results found</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.length>0 ? filtered.map(l => <ListingCard key={l.id} data={l} />) : (<div className="col-span-full py-20 text-center"><div className="bg-slate-100 w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center"><SearchIcon /></div><h3 className="text-xl font-bold">No listings found</h3></div>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Collections ----------
+function Collections({ navigate }) {
+  const collections = [
+     { id:'luxury', title:"Luxury Escapes", desc:"Indulge in the finest accommodations.", img:"https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&q=80&w=1000" },
+     { id:'safari', title:"Wild Safari", desc:"Get close to nature's giants.", img:"https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&q=80&w=1000" },
+     { id:'family', title:"Family Fun", desc:"Adventures for all ages.", img:"https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&q=80&w=1000" }
+  ];
+  return (
+    <div className="pt-24 px-6 min-h-screen max-w-7xl mx-auto pb-20">
+       <h1 className="text-5xl font-bold mb-4">Collections</h1>
+       <p className="text-xl text-slate-500 mb-12 max-w-2xl">Curated experiences to help you find the perfect trip.</p>
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
+         {collections.map(c => (<div key={c.id} onClick={()=>navigate('explore',{category:c.id})} className="relative h-96 rounded-3xl overflow-hidden cursor-pointer group shadow-xl"><img src={c.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/><div className="absolute inset-0 bg-gradient-to-t from-black/80 p-8 flex items-end"><div><h3 className="text-3xl font-bold text-white mb-2">{c.title}</h3><p className="text-slate-300">{c.desc}</p></div></div></div>))}
+       </div>
+    </div>
+  );
+}
+
+// ---------- Partner Dashboard (CRUD using localStorage) ----------
+function PartnerDashboard({ listings, addListing, updateListing, deleteListing, user, onLogout }) {
+  const [activeTab, setActiveTab] = useState('listings');
+  const [editing, setEditing] = useState(null);
+  const initialForm = { title:'', price:'', province:'Harare', town:'', category:'Resorts', description:'', tags:'', mapLink:'', image:'', collectionType:'none', ageRequirement:0, amenities:'' };
+  const [form, setForm] = useState(initialForm);
+
+  useEffect(()=>{ if (editing) { const l = listings.find(x=>x.id===editing); if(l) setForm({ ...l, price: String(l.price), tags: (l.tags||[]).join(', '), amenities:(l.amenities||[]).join(', ') }); } },[editing]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newListing = { id: editing || Date.now(), title: form.title, province: form.province, town: form.town, location: form.town||form.province, price: Number(form.price), rating:5, image: form.image||'https://images.unsplash.com/photo-1566073771259-6a8506099945', gallery:[], category: form.category, type:'stay', amenities: form.amenities.split(',').map(s=>s.trim()).filter(Boolean), isOpen:true, description: form.description, reviews:0, tags: form.tags.split(',').map(s=>s.trim()).filter(Boolean), mapLink: form.mapLink, ageRequirement: Number(form.ageRequirement), collectionType: form.collectionType };
+    if (editing) { updateListing(newListing); alert('Listing Updated!'); } else { addListing(newListing); alert('New Property Published!'); }
+    setEditing(null); setForm(initialForm); setActiveTab('listings');
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!form.title || !form.town) { alert('Enter Title and Town first.'); return; }
+    const prompt = `Write a short, catchy description for ${form.title} in ${form.town}. Amenities: ${form.amenities}.`;
+    const desc = await generateGeminiContent(prompt);
+    setForm(f=>({...f, description: desc}));
+  };
+
+  return (
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-900">
+      <aside className="w-64 bg-slate-950 text-white fixed h-full hidden lg:flex flex-col p-6">
+        <div className="font-bold text-2xl mb-6">PANORA.<span className="text-amber-500"> </span><div className="text-xs text-slate-400 mt-1">Partner Hub</div></div>
+        <nav className="flex-1 space-y-2">
+          <button className={`w-full px-4 py-3 rounded-xl ${activeTab==='listings'?'bg-amber-600':''}`} onClick={()=>{setActiveTab('listings'); setEditing(null);}}>My Listings</button>
+          <button className={`w-full px-4 py-3 rounded-xl ${activeTab==='add'?'bg-amber-600':''}`} onClick={()=>{setActiveTab('add'); setEditing(null); setForm(initialForm);}}>Add Property</button>
+        </nav>
+        <div className="pt-4 border-t border-slate-800">
+          <button onClick={()=>{onLogout();}} className="w-full text-red-400">Sign Out</button>
+        </div>
+      </aside>
+
+      <main className="lg:ml-64 flex-1 p-8">
+        {activeTab === 'listings' ? (
+          <div>
+            <h1 className="text-3xl font-bold mb-8">Manage Listings</h1>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {listings.map(l => (
+                <div key={l.id} className="bg-white dark:bg-slate-800 rounded-xl p-4 shadow-sm border">
+                  <div className="flex gap-4"><img src={l.image} className="w-24 h-24 rounded-lg object-cover"/><div><h3 className="font-bold">{l.title}</h3><p className="text-sm text-slate-500">{l.town}, {l.province}</p><div className="text-amber-500 font-bold mt-2">${l.price}</div></div></div>
+                  <div className="mt-4 pt-4 border-t flex justify-end gap-2"><button onClick={()=>{ setEditing(l.id); setActiveTab('add'); }} className="p-2 bg-blue-50 text-blue-600 rounded-lg">Edit</button><button onClick={()=>deleteListing(l.id)} className="p-2 bg-red-50 text-red-600 rounded-lg">Delete</button></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold mb-8">{editing ? 'Edit Property' : 'Add New Property'}</h1>
+            <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div><label className="block text-sm font-bold mb-1">Property Title</label><input required className="w-full p-3 rounded-lg border" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} /></div>
+                <div><label className="block text-sm font-bold mb-1">Category</label><select className="w-full p-3 rounded-lg border" value={form.category} onChange={e=>setForm({...form,category:e.target.value})}><option>Resorts</option><option>Camps</option><option>Lodges</option><option>Hotels</option></select></div>
+                <div><label className="block text-sm font-bold mb-1">Price ($)</label><input required type="number" className="w-full p-3 rounded-lg border" value={form.price} onChange={e=>setForm({...form,price:e.target.value})} /></div>
+                <div><label className="block text-sm font-bold mb-1">Age Requirement</label><input type="number" className="w-full p-3 rounded-lg border" value={form.ageRequirement} onChange={e=>setForm({...form,ageRequirement:e.target.value})} /></div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                <div><label className="block text-sm font-bold mb-1">Province</label><select className="w-full p-3 rounded-lg border" value={form.province} onChange={e=>setForm({...form,province:e.target.value})}>{PROVINCES.map(p=> <option key={p}>{p}</option>)}</select></div>
+                <div><label className="block text-sm font-bold mb-1">Town/Location</label><input required className="w-full p-3 rounded-lg border" value={form.town} onChange={e=>setForm({...form,town:e.target.value})} /></div>
+                <div className="col-span-2"><label className="block text-sm font-bold mb-1">Map Link</label><input className="w-full p-3 rounded-lg border" value={form.mapLink} onChange={e=>setForm({...form,mapLink:e.target.value})} /></div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold mb-2">Description <button type="button" onClick={handleGenerateDescription} className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Auto-Write with AI</button></label>
+                <textarea required className="w-full p-3 rounded-lg border h-32" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}></textarea>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div><label className="block text-sm font-bold mb-1">Main Image URL</label><input className="w-full p-3 rounded-lg border" value={form.image} onChange={e=>setForm({...form,image:e.target.value})} /></div>
+                <div><label className="block text-sm font-bold mb-1">Tags (comma separated)</label><input className="w-full p-3 rounded-lg border" value={form.tags} onChange={e=>setForm({...form,tags:e.target.value})} /></div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={()=>{ setEditing(null); setForm(initialForm); setActiveTab('listings'); }} className="py-3 px-6 border rounded-lg">Cancel</button>
+                <button type="submit" className="py-3 px-6 bg-amber-500 text-white rounded-lg">Save</button>
+              </div>
+            </form>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+
+// ---------- AI Planner Modal ----------
+function AIPlannerModal({ onClose }) {
+  const [step, setStep] = useState(1);
+  const [destination, setDestination] = useState('Zimbabwe');
+  const [days, setDays] = useState(5);
+  const [budget, setBudget] = useState('Medium');
+  const [interests, setInterests] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState('');
+
+  const interestOptions = ["Safari","History","Food","Relaxation","Hiking","Water Sports","Photography","Culture"];
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    const prompt = `Act as an expert travel guide for ${destination}. ${days}-day itinerary. Budget: ${budget}. Interests: ${interests.join(', ')}`;
+    const text = await generateGeminiContent(prompt);
+    setResult(text);
+    setLoading(false);
+    setStep(2);
+  };
+
+  if (!onClose) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden z-10 flex flex-col max-h-[90vh]">
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 flex justify-between items-center text-white">
+          <div className="flex items-center space-x-3"><div className="bg-white/20 p-2 rounded-full"><SparklesIcon /></div><div><h2 className="text-2xl font-bold">AI Trip Planner</h2><p className="text-indigo-100 text-sm">Powered by Gemini AI (stub)</p></div></div>
+          <button onClick={onClose} className="p-2">✖️</button>
+        </div>
+
+        <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
+          {step===1 ? (
+            <div className="space-y-6">
+              <div><label className="block text-sm font-bold mb-2">Where do you want to go?</label><input value={destination} onChange={e=>setDestination(e.target.value)} className="w-full p-4 rounded-xl border dark:bg-slate-800" /></div>
+              <div className="grid grid-cols-2 gap-6">
+                <div><label className="block text-sm font-bold mb-2">Duration</label><select value={days} onChange={e=>setDays(Number(e.target.value))} className="w-full p-4 rounded-xl border"><option>3</option><option>4</option><option>5</option><option>7</option></select></div>
+                <div><label className="block text-sm font-bold mb-2">Budget</label><select value={budget} onChange={e=>setBudget(e.target.value)} className="w-full p-4 rounded-xl border"><option>Shoestring</option><option>Medium</option><option>Luxury</option></select></div>
+              </div>
+
+              <div><label className="block text-sm font-bold mb-2">Interests</label><div className="flex flex-wrap gap-3">{interestOptions.map(i=> <button type="button" key={i} onClick={()=> setInterests(prev=> prev.includes(i)? prev.filter(x=>x!==i) : [...prev,i]) } className={`px-4 py-2 rounded-full font-bold text-sm ${interests.includes(i)?'bg-indigo-600 text-white':'bg-slate-100 dark:bg-slate-800'}`}>{i}</button>)}</div></div>
+
+              <button onClick={handleGenerate} disabled={loading} className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold">{loading? 'Designing...' : 'Generate Itinerary'}</button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="prose max-w-none dark:prose-invert whitespace-pre-line">{result}</div>
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-700 flex space-x-4"><button onClick={()=>{ setStep(1); setResult(''); setInterests([]); }} className="flex-1 py-3 border rounded-xl">Start Over</button><button onClick={onClose} className="flex-1 py-3 bg-indigo-600 text-white rounded-xl">Save Plan</button></div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Auth Modal ----------
+function AuthModal({ onClose, onLogin }) {
+  const [mode, setMode] = useState('traveler');
+  if (!onClose) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose}/>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-md z-10">
+        <div className="flex justify-between items-center mb-4"><div className="text-xl font-bold">Sign In</div><button onClick={onClose}>✖️</button></div>
+        <div className="flex border-b mb-4">
+          <button onClick={()=>setMode('traveler')} className={`flex-1 py-3 ${mode==='traveler'?'text-amber-500 border-b-2 border-amber-500':''}`}>Traveler</button>
+          <button onClick={()=>setMode('partner')} className={`flex-1 py-3 ${mode==='partner'?'text-amber-500 border-b-2 border-amber-500':''}`}>Partner</button>
+        </div>
+        <div className="p-6 text-center">
+          <div className="mb-4">{mode==='traveler' ? 'Enter as Traveler' : 'Partner Login'}</div>
+          <button onClick={()=>onLogin(mode)} className="w-full bg-amber-500 text-white py-3 rounded-lg">{mode==='traveler'? 'Enter as Traveler' : 'Enter Dashboard'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- AboutUs ----------
+function AboutUs() {
+  return (
+    <div className="min-h-screen bg-white dark:bg-slate-950 pt-24">
+      <div className="max-w-7xl mx-auto px-6 py-20">
+        <h1 className="text-4xl font-bold mb-4">Our Story</h1>
+        <p className="text-slate-600">{t('aboutText')}</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Footer ----------
+function Footer({ navigate }) {
+  return (
+    <footer className="bg-slate-950 text-white py-16 border-t border-slate-900 mt-12">
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+        <div><div className="font-bold text-2xl mb-6">PANORA<span className="text-amber-500">.</span></div><p className="text-slate-400 text-sm">{t('footerDesc')}</p></div>
+        <div><h4 className="font-bold text-lg mb-6">Company</h4><ul className="space-y-3 text-slate-400 text-sm"><li><button onClick={()=>navigate('about')}>About</button></li><li><button onClick={()=>navigate('careers')}>Careers</button></li></ul></div>
+        <div><h4 className="font-bold text-lg mb-6">Support</h4><ul className="space-y-3 text-slate-400 text-sm"><li><a href={`mailto:${ADMIN_EMAIL}`} className="hover:text-amber-500">Contact Support</a></li></ul></div>
+        <div><h4 className="font-bold text-lg mb-6">Newsletter</h4><div className="flex"><input placeholder="Email" className="bg-slate-900 border border-slate-800 text-white p-2 rounded-l" /><button className="bg-amber-500 px-4 rounded-r">Subscribe</button></div></div>
+      </div>
+    </footer>
+  );
+}
+
+// ---------- Render ----------
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+</script>
+</body>
+</html>
